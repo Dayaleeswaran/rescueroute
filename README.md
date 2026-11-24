@@ -192,4 +192,4 @@ The local JSON store is for a single-process demo. It is not a production multi-
 
 Keep one branch (`main`) and a **public** GitHub repository. Commit the complete source, tests, lockfile, README, and prompt documentation. Exclude `.env`, `.data`, `node_modules`, and generated artefacts. The repository source is well under 10 MB; development packages are installed locally and are not committed.
 
-The local Git repository does not constitute publication. Verify public visibility, the single branch, source size, and a fresh-checkout test before submitting the repository URL. No public remote has been configured yet.
+Public repository: [Dayaleeswaran/rescueroute](https://github.com/Dayaleeswaran/rescueroute). The project is published on the single `main` branch. Verify visibility, branch count, source size, and a fresh-checkout test again before final submission.
