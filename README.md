@@ -1,136 +1,195 @@
 # RescueRoute
 
-**Every meal has somewhere to go.** A food-rescue coordination assistant that turns donor messages into reviewed offers and feasible collection-and-delivery plans.
+**Every meal has somewhere to go.** A complete local food-rescue coordination demo with authenticated role portals, persistent records, approval queues, constraint-checked plans, inventory reservations, and a delivery handoff workflow.
 
-Chosen vertical: **sustainability and community logistics**. Primary persona: a coordinator working with restaurants, community recipients, and volunteer drivers.
+**Vertical:** sustainability and community logistics. **Primary persona:** a coordinator connecting food donors, community recipients, and volunteer drivers.
 
-## The problem
+## Start the demo
 
-Food-rescue coordinators must reconcile changing quantities, short collection windows, dietary restrictions, limited transport, and cancellations. A list of donations is useful only when someone can actually collect and deliver them.
-
-The [UNEP Food Waste Index 2024](https://www.unep.org/resources/publication/food-waste-index-report-2024) estimates 1.05 billion tonnes of food waste in 2022 across households, retail, and food services. RescueRoute addresses one operational part of that problem: coordinating the collection of **donor-confirmed surplus meals**. Its demo results are simulated allocations, not evidence of real meals delivered or emissions avoided.
-
-## Run locally
-
-Requires **Node.js 22.13 or newer**. There are no package dependencies, installs, databases, external fonts, or map services.
+Requires **Node.js 22.13 or newer**.
 
 ```sh
 npm start
 ```
 
-Open **http://localhost:3000**. The server listens only on `127.0.0.1`. On Windows, use `npm.cmd start` if PowerShell blocks `npm.ps1`.
+Open **http://localhost:3000**. No dependency installation is required to run the application: the server uses Node built-ins and the interface uses native browser APIs. On Windows, use `npm.cmd start` if PowerShell blocks `npm.ps1`.
 
-```sh
-npm test
-npm run check
-```
+The application is deliberately local-only. It binds to `127.0.0.1`, rejects non-local hostnames, and creates an ignored `.data/rescueroute.json` file. Run **one server process per data directory**. The server does not dispatch real deliveries or send external messages.
 
-## Two-minute demonstration
+### Demo accounts
 
-1. Click **Build rescue plan**. The initial scenario allocates **80 meals**, respecting the declared constraints.
-2. Read the trip times and explanations. The map is an illustrative city grid; the trip list is the textual equivalent.
-3. Click **Simulate Alex cancelling**. The plan rebuilds automatically. Alex's chilled vehicle is removed, so the 20 chilled meals remain unallocated. Other constraints can leave additional food unmatched.
-4. Restore Alex and see the allocation recover.
-5. Click **Add food offer → Use sample message → Extract offer details**. Review the draft, choose a collection location, and confirm the donor-provided details. Add the offer and rebuild.
-6. **Confirm this plan**, then **Export plan** to download a JSON record containing the scenario, decisions, assumptions, and feasibility audit.
-
-Confirmation records human review within the current browser session. It does not notify organisations, reserve inventory in a shared database, or dispatch drivers. Refreshing resets the demo.
-
-## How the assistant works
+Use **Use selected demo account** on the sign-in screen, then sign in. Every seeded account uses this public demonstration password:
 
 ```text
-Donor message
-    ↓
-AI structured extraction / explicitly labelled local parser
-    ↓
-Unknown-field questions + coordinator review
-    ↓
-Validated, donor-confirmed food offer
-    ↓
-Deterministic allocation engine → independent feasibility audit
-    ↓
-Explainable draft trips → coordinator confirmation → export
+RescueDemo!2026
 ```
 
-### Prompt design
+| Role          | Email                               | Access                                                     |
+| ------------- | ----------------------------------- | ---------------------------------------------------------- |
+| Administrator | `admin@demo.rescueroute.test`       | All operational panels, users, settings, reset             |
+| Coordinator   | `coordinator@demo.rescueroute.test` | Network management, reviews, planning, deliveries, reports |
+| Donor         | `donor@demo.rescueroute.test`       | The Green Table's profile, offers, relevant deliveries     |
+| Donor         | `bakery@demo.rescueroute.test`      | Daily Bread Bakery                                         |
+| Donor         | `roots@demo.rescueroute.test`       | Roots Kitchen                                              |
+| Recipient     | `recipient@demo.rescueroute.test`   | Northside Shelter's profile, needs, receipts               |
+| Recipient     | `riverside@demo.rescueroute.test`   | Riverside Centre's profile, needs, receipts                |
+| Volunteer     | `volunteer@demo.rescueroute.test`   | Maya Chen's profile, availability, assigned trips          |
+| Volunteer     | `alex@demo.rescueroute.test`        | Alex Morgan's profile, availability, assigned trips        |
 
-The actual system prompt is exported as `INTAKE_PROMPT` in [lib/intake.mjs](lib/intake.mjs). It defines the coordinator persona, treats messages as untrusted data, requires unknown values to remain `null`, prohibits inferred allergens and food-safety certification, and delegates final review to a human. OpenAI structured output constrains the draft's shape. Server validation then checks its contents. Structured output does **not** guarantee factual correctness.
+These credentials are intentionally public for local evaluation. Do not expose the demo to the internet or reuse its passwords. Accounts can be created, disabled, and given replacement passwords from the admin panel. A password reset revokes that account's existing sessions. Administrators cannot disable their own account.
 
-Follow-up questions are generated from missing fields rather than guessed answers. Example: “15 meals available” provides a quantity, but not a location, declared allergens, transport requirement, or collection deadline. The coordinator must supply those before adding the offer. The AI has no allocation tools or access to the server API key in its prompt.
+## Why this problem matters
 
-### Optional live AI intake
+The [UNEP Food Waste Index 2024](https://www.unep.org/resources/publication/food-waste-index-report-2024) estimates 1.05 billion tonnes of food waste in 2022 across households, retail, and food services. RescueRoute addresses one operational slice: matching **donor-confirmed surplus meals** with recipient needs when time, ingredients, transport, and staffing are constrained.
 
-The planning demo works without credentials. Without a key, **Local intake** is shown in the interface. The limited parser recognises meal counts, explicit collection times, and labelled `Donor:`, `Food:`, `Handling:`, and `Allergens:` fields. It is not presented as an LLM.
+A donation is only useful when it can actually be collected and delivered. RescueRoute does not treat an attractive route diagram or an AI suggestion as a substitute for feasible logistics.
 
-To enable live extraction, copy `.env.example` to `.env`, set `OPENAI_API_KEY`, and restart `npm start`. `OPENAI_MODEL` defaults to `gpt-4.1-mini`; choose an available model that supports Chat Completions structured output. Only submitted donor-message text goes to OpenAI. Use fictional data for this demonstration. API usage may incur provider charges. Keys remain server-side and `.env` is excluded from Git.
+## Working panels
 
-The adapter uses the [official structured-output format](https://developers.openai.com/api/docs/guides/structured-outputs). Provider errors are surfaced; the app does not silently relabel local parsing as AI. The live provider has not been exercised without user-supplied credentials; automated tests use a mocked provider response.
+| Panel                      | Functionality                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Overview                   | Role-specific metrics, fictional network map, actionable links, recent notifications                           |
+| Food offers                | Create, edit, withdraw, search, filter, review status, declared allergens, handling, use-by and transit limits |
+| Recipient needs            | Create, edit, withdraw, search, filter, priority, exclusions, delivery deadline                                |
+| Donor & recipient networks | Organisation profiles, contacts, grid locations, activation/deactivation                                       |
+| Volunteers                 | Profiles, capacity, vehicle, chilled capability, shifts, availability and cancellation                         |
+| Review queue               | Approve or reject submissions with an optional review note                                                     |
+| Rescue planner             | Build drafts, see unmet needs and explanations, confirm reservations, inspect persisted history                |
+| Deliveries                 | Assignment acceptance, pickup, arrival, recipient receipt, recorded event timeline                             |
+| Impact & reports           | Offered, reserved, and received quantities separately; JSON and donor CSV export                               |
+| Notifications              | Persisted, role- and profile-filtered updates                                                                  |
+| Activity log               | Latest 200 actions, with actor, time, and details                                                              |
+| User accounts              | Admin-only account creation, account status, email/name updates, password resets                               |
+| Settings                   | Admin-only network naming, forward-only simulation clock, provider status, guarded reset                       |
 
-### Allocation decisions
+Permissions are enforced by the server, including record ownership and field whitelists. Hiding a navigation item is not the security boundary. Participant accounts only receive their own records and information relevant to assigned handoffs. User password hashes and provider keys never appear in API state or exports.
 
-For each donor–recipient–volunteer combination, the engine checks:
+## Complete demonstration
 
-- Donor-confirmed food and positive remaining stock and demand.
-- No declared allergen conflicts, with case-insensitive comparison.
-- Chilled transport capability when required.
-- Travel from the driver's previous delivery, offer readiness, and four minutes for collection.
-- Collection completion before the donor deadline.
-- Travel and four-minute handover before both the recipient deadline and driver shift end.
-- A load no larger than the vehicle capacity, remaining stock, or remaining demand.
+1. Sign in as **admin**. In **Rescue planner**, build a draft. The initial scenario proposes **80 meals across four trips**. Read the collection times and explanations.
+2. Before confirmation, open **Volunteers**, make Alex unavailable, and build a new draft. Only **60 meals** can be allocated; the chilled meals have no eligible vehicle.
+3. Restore Alex, rebuild, then **Confirm & reserve meals**. Reservations now protect the stock, demand, and driver schedule.
+4. Build another draft. Already reserved meals cannot be allocated again.
+5. Sign out and sign in as **volunteer** (Maya). In **Deliveries**, accept the first trip, confirm pickup, then mark arrival. Trying to collect a later trip first is rejected.
+6. Sign out and sign in as **riverside**. Confirm receipt of Maya's delivery. Only now are those meals counted as delivered.
+7. Sign back in as admin. Inspect the received totals, activity log, and exports.
+8. As a donor, create a new offer. It enters review. A coordinator can approve it and include its remaining quantity in a new plan.
 
-Among feasible trips, a reproducible heuristic favours closing deadlines, recipient priority, fuller loads, and shorter travel, with a penalty for using chilled vehicles on ambient offers when chilled supply exists. After choosing a trip, it updates stock, demand, driver position, and availability before choosing the next.
+Accounts in ordinary tabs share the same browser cookie. Sign out to switch roles, or use separate browser profiles for simultaneous sessions. Refresh each workspace after another account changes the network. The interface intentionally uses manual refresh rather than background polling.
 
-The score is `1200 / (deadline - planningStart + 10) + priority × 9 + meals × 0.7 - kilometres × 0.8 - chilledOpportunityCost`. The opportunity cost is 15 when applicable. Deadline urgency uses a common start time so a later-arriving driver is not rewarded for being late.
+See [docs/DEMO.md](docs/DEMO.md) for the judging script and [docs/API.md](docs/API.md) for permissions and endpoints.
 
-This is a **greedy heuristic, not a global optimiser**. It does not claim that unmatched meals are impossible to deliver under every alternative plan. The independent audit directly checks constraints without reusing the scoring/candidate function.
+## Decision logic and lifecycle
 
-## Architecture and maintainability
+```text
+Donor message → extracted draft → human review → pending offer
+                                                ↓ coordinator approval
+Approved supply + approved needs + available volunteers
+                        ↓
+Feasible draft → independent audit → coordinator confirmation
+                                         ↓
+                             stock and demand reserved
+                                         ↓
+Assigned → Accepted → Picked up → Awaiting receipt → Delivered
+                                                       ↑
+                                       recipient/coordinator confirms
+```
 
-| File                 | Responsibility                                                                    |
+### Allocation constraints
+
+The pure planner considers only approved, donor-confirmed offers and approved needs at active organisations. It subtracts all confirmed reservations and all recipient-confirmed deliveries before planning. A new plan therefore operates on residual quantities.
+
+Every trip checks:
+
+- Positive remaining supply and demand; capacity limited to one driver load.
+- No declared allergen conflict. Conservative equivalences cover milk/dairy, soy/soya, common nut labels, and several other synonyms. The broad nut group intentionally over-excludes. Unrecognised labels use normalised exact matching; this is not exhaustive allergen detection.
+- Chilled transport when required by the donor.
+- Travel from the driver's last committed delivery location, the offer's ready time, four minutes for collection, and collection completion before the donor cutoff.
+- Four-minute delivery handover before the recipient deadline, donor-declared delivery use-by, and driver shift end.
+- Transit plus delivery handover within the donor-declared maximum transit minutes.
+
+Feasible trips receive a repeatable heuristic score based on soon-closing supply, recipient priority, load size, travel distance, and preserving chilled transport. Quantities and driver positions are updated after each selection. The independent audit directly rechecks constraints without calling the candidate/scoring function.
+
+This is a **greedy heuristic, not a guarantee of global optimality**. An unmatched offer is not proof that no alternative schedule could deliver it.
+
+### Reservation and delivery integrity
+
+- Drafts reserve nothing. Confirmation rechecks the current network and commits the assignments atomically.
+- A global revision rejects stale drafts and edits; concurrent confirmation requests cannot both reserve the same stock.
+- Transactions are serialised within one server process. A failed transaction leaves both in-memory state and the committed data file unchanged.
+- Reserved source records and linked organisation locations cannot be edited while the trips are active.
+- Subsequent drafts account for committed driver schedules, including their last delivery position.
+- Only the assigned volunteer or a coordinator can accept, collect, or mark arrival. Only the receiving organisation or a coordinator can confirm receipt.
+- The next pickup cannot occur while an earlier non-cancelled trip for that driver is incomplete.
+- A volunteer cancellation releases that driver's uncollected assignments. A volunteer carrying food cannot become unavailable until the handoff is completed.
+- The coordinator's global release cancels all uncollected trips while preserving food in transit and completed receipts. Cancelling all dependent uncollected stops prevents new routes relying on a removed stop.
+- Historical trip labels and contacts are snapshotted, while delivered quantities remain conserved even if a source profile changes later.
+- Source quantities cannot be reduced below portions already delivered or reserved. Linked history cannot be deleted; use deactivation/cancellation instead.
+
+## Prompt design and no-key mode
+
+The actual system prompt lives in [lib/intake.mjs](lib/intake.mjs). It defines a donation-intake assistant, treats user messages as untrusted data, requires unknown facts to remain `null`, forbids inferred allergens and safety certification, and returns a constrained structured draft. Missing fields generate follow-up questions. AI cannot approve an offer, allocate stock, or perform delivery transitions.
+
+**The default demo has no API key.** Its interface explicitly says **Local parser**. It recognises explicit meal quantities and collection times and labelled `Donor:`, `Food:`, `Handling:`, and `Allergens:` lines. The quantity, food description, deadline, handling, and allergens can populate the form; the coordinator must still confirm the organisation, donor suitability, location, use-by, and transit requirements. This parser is not presented as an LLM.
+
+Optional live mode: copy `.env.example` to `.env`, set `OPENAI_API_KEY`, choose an available structured-output-capable model with `OPENAI_MODEL`, and restart. Only submitted message text goes to OpenAI. Keys remain server-side. Provider failures are surfaced rather than silently replaced with local output. API usage may incur charges.
+
+The adapter uses the [official structured-output format](https://developers.openai.com/api/docs/guides/structured-outputs). Structured output guarantees shape, not truth. Live provider behaviour has not been verified without credentials; its transport is covered by mocked tests. See [docs/PROMPT_EVALUATION.md](docs/PROMPT_EVALUATION.md).
+
+## Test and check
+
+The only package dependencies are development tools for DOM integration tests:
+
+```sh
+npm ci
+npm test
+npm run check
+npm audit
+```
+
+Tests cover allocation constraints; 160 deterministic generated scenarios; conservation and reproducibility; double reservation; concurrent confirmation; stale drafts; ownership; review rules; transport cancellation; ordered handoffs; recipient-only receipt; account permissions; password-session revocation; guarded reset; persistent restart; rollback; request size; authentication; CSRF; origin checks; file exposure; and the interface event flows against the real HTTP server.
+
+The jsdom tests are **DOM integration tests, not visual browser tests**. Native dialog methods are stubbed for that environment. They do not establish layout correctness, native dialog focus behaviour, screen-reader behaviour, or mobile rendering. A browser connection was unavailable during implementation, so those reviews remain outstanding. See [docs/TESTING.md](docs/TESTING.md).
+
+## Architecture
+
+| Module               | Responsibility                                                                    |
 | -------------------- | --------------------------------------------------------------------------------- |
-| `server.mjs`         | Local HTTP server, explicit static-file allowlist, request boundaries, API routes |
-| `lib/scenario.mjs`   | Fictional, reproducible scenario factory                                          |
-| `lib/validation.mjs` | Shared input contracts and limits                                                 |
-| `lib/intake.mjs`     | Prompt, provider adapter, output cleaning, local parser, follow-up questions      |
-| `lib/planner.mjs`    | Pure planning function and separate feasibility audit                             |
-| `public/app.js`      | UI state, reviewed intake, replanning, confirmation, export                       |
-| `public/styles.css`  | Responsive layout, keyboard focus, reduced-motion support                         |
-| `test/`              | Planner, intake, and HTTP integration tests using Node's test runner              |
-| `docs/`              | Prompt evaluation cases and the judging demonstration guide                       |
+| `server.mjs`         | Local HTTP server, sessions, CSRF/origin/host checks, API and static allowlists   |
+| `lib/auth.mjs`       | Salted scrypt password hashes, constant-time comparison, expiring sessions        |
+| `lib/database.mjs`   | Fictional seed data, atomic file replacement, serial transaction queue            |
+| `lib/operations.mjs` | Roles, ownership, CRUD, approvals, reservations, lifecycle, audit, filtered views |
+| `lib/planner.mjs`    | Pure allocation function and separate feasibility audit                           |
+| `lib/allergens.mjs`  | Conservative label equivalences                                                   |
+| `lib/validation.mjs` | Input limits and scenario contracts                                               |
+| `lib/intake.mjs`     | System prompt, provider adapter, output cleaning, local parser                    |
+| `public/`            | Accessible semantic controls, role-aware interface, responsive CSS                |
+| `test/`              | Unit, domain, HTTP, persistence, and DOM integration tests                        |
+| `scripts/check.mjs`  | Syntax check across every JavaScript module                                       |
 
-## Security and efficiency
+## Security, efficiency, and accessibility
 
-- Server-side API key; no secret sent to the browser, logged, or committed.
-- Local-only listener, hostname restrictions, same-origin checks, and no permissive CORS.
-- Strict JSON request boundaries: 48 KB body limit, bounded input fields, maximum 30 entities per category.
-- Explicit static-file allowlist excludes source files, `.env`, and repository internals.
-- Content Security Policy, no inline scripts, text escaping, and no external runtime assets.
-- Intake message limit of 3,000 characters, a 20-second provider timeout, limited output length, and one intake request at a time with a cooldown.
-- Pure, repeatable planning; bounded to 240 greedy iterations. Worst-case complexity is `O(iterations × offers × recipients × volunteers)`. This is intended for small coordinator workloads, not citywide optimisation.
-- No telemetry, background polling, or paid map API. Data is held in memory and resets on refresh. Downloaded exports contain the scenario and should be handled appropriately.
+- HttpOnly, SameSite=Strict cookies; eight-hour in-memory sessions. Sessions reset on server restart. Password changes, account deactivation, and demo reset revoke relevant access; queued writes recheck account and demo generation.
+- Scrypt password hashing with independent random salts; account fields are whitelisted.
+- CSRF tokens for authenticated mutations, same-origin checks, local-host restrictions, strict CSP, escaped UI text, and static-file allowlists.
+- Login throttling; intake cooldown, one provider request at a time, 3,000-character input limit, and a 20-second provider timeout. JSON bodies are limited to 48 KB.
+- Maximum 30 records per operational category, 60 accounts, 200 plan versions, 1,500 audit entries, and 250 stored notifications. Older notifications/audit entries are bounded; exported state includes the latest 200 audit entries and 50 relevant notifications.
+- No runtime dependencies, map API, external assets, telemetry, background polling, or bundling requirement. The bounded planner is intended for small coordinator workloads rather than global route optimisation.
+- CSV exports quote cells and neutralise leading spreadsheet formula characters. JSON exports omit password hashes and API credentials, but include participant contacts and should be handled appropriately.
+- Labelled form controls, semantic headings, native dialogs, status text in addition to colour, live feedback, visible focus, a skip link, responsive navigation, and reduced-motion support. The trip list is the textual map equivalent.
 
-## Tests and validation
+## Assumptions and deployment limits
 
-The suite covers full baseline allocation; cancellation; no volunteers; expired and unconfirmed food; allergen exclusion; capacity and demand limits; duplicate/tampered trips; input validation; explicit and missing intake facts; mocked live extraction; provider failure; cross-origin rejection; file exposure; request limits; and intake throttling.
+All organisations, volunteers, addresses, and quantities are fictional. The simulation day is **25 November 2026**, starting at **16:00**. The clock is explicit and does not advance with real time. Event timestamps show when a demonstration action was recorded, not when a real delivery occurred.
 
-A deterministic generator also exercises **160 varied scenarios**, checking feasibility, stock conservation, demand conservation, and reproducibility. See [docs/PROMPT_EVALUATION.md](docs/PROMPT_EVALUATION.md) for semantic prompt cases that require a configured live model. Mocked provider tests do not establish live model quality.
+Locations are kilometre-grid points. Travel is straight-line distance at 24 km/h; routes are **not road navigation, traffic estimates, or actual ETAs**. Driver availability after a committed trip uses its planned completion time. Each trip collects from one donor and delivers to one recipient. No multi-donor load or route optimiser is claimed.
 
-Keyboard support includes labelled fields, native form controls, modal dialogs, visible focus, a skip link, semantic landmarks, live feedback, and a textual route list. The responsive layout includes a narrow-screen navigation treatment and honours reduced-motion preferences. Full browser, screen-reader, and colour-contrast audits remain necessary before production use.
+Food suitability, declared ingredients, temperatures, deadlines, and vehicle capability are human-provided. The app cannot certify safety, independently verify a cold chain, identify undisclosed allergens, or replace local food-handling procedures. Conservative label matching and transit limits are planning checks, not a food-safety assessment.
 
-## Assumptions and practical limits
-
-- Harbor City, its grid coordinates, all participants, and every quantity are fictional. The scenario clock starts at 16:00; all deadlines are the same day.
-- Distances are straight lines on a kilometre grid, at an assumed 24 km/h. They are **not road routes**, traffic estimates, or turn-by-turn navigation.
-- Driver capacity is a meal-count limit per trip. Each trip collects from one donor and delivers to one recipient; subsequent trips begin at the previous recipient.
-- A donor deadline governs collection completion; the recipient deadline governs delivery completion. This prototype has no separate food shelf-life, temperature sensor, or maximum transit-time model.
-- Donors and coordinators must verify food suitability, ingredients, handling, and recipient requirements. A matching allergen list or chilled flag does not establish food safety or cold-chain compliance.
-- Priority is an explicit demo setting (1–3); the system does not infer vulnerability from personal characteristics.
-- Recipient needs and volunteer records are seeded demo data. The UI supports new food offers and Alex's cancellation/restoration, rather than full participant administration.
-- Similar donor/food/deadline entries are blocked in the UI as possible duplicates; this is not comprehensive duplicate detection.
-- No authentication, shared persistence, messaging, dispatch, food-safety certification, or legal compliance claims. Add identity, consent, validated operational policies, real routing, audit storage, and concurrency-safe reservations before use with real organisations.
+The local JSON store is for a single-process demo. It is not a production multi-server database, backup service, or immutable audit ledger. Production use requires unique private credentials, HTTPS, durable database constraints and migrations, tested backup/recovery, real routing, verified food-handling policies, privacy review, and browser/accessibility testing. No payment system, external notifications, geolocation tracking, or actual dispatch is implemented.
 
 ## Challenge submission
 
-The source has no dependency or build directories and is comfortably below 10 MB. Keep `.env`, generated artefacts, and `node_modules` excluded. Use one branch (`main`) and a public GitHub repository. The repository should include this README, complete source, tests, and prompt evaluation documentation. A public remote and public visibility must be verified before submitting; a local Git repository alone is not a completed submission.
+Keep one branch (`main`) and a **public** GitHub repository. Commit the complete source, tests, lockfile, README, and prompt documentation. Exclude `.env`, `.data`, `node_modules`, and generated artefacts. The repository source is well under 10 MB; development packages are installed locally and are not committed.
 
-Demo script: [docs/DEMO.md](docs/DEMO.md).
+The local Git repository does not constitute publication. Verify public visibility, the single branch, source size, and a fresh-checkout test before submitting the repository URL. No public remote has been configured yet.

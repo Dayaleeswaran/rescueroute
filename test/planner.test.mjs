@@ -39,6 +39,26 @@ test("zero volunteers yields a clear explanation and zero allocation", () => {
   );
   assert.ok(p.unallocated.every((o) => /No volunteers/.test(o.reason)));
 });
+
+test("donor use-by deadlines and maximum transit times are enforced", () => {
+  const s = createScenario();
+  s.offers.forEach((o) => {
+    o.deliverBy = o.deadline;
+    o.maxTransitMinutes = 1;
+  });
+  const p = planRescue(s);
+  assert.equal(p.metrics.allocated, 0);
+  assert.deepEqual(auditPlan(s, p), []);
+});
+
+test("conservative allergen equivalents block milk/dairy and peanut/nut conflicts", () => {
+  const s = createScenario();
+  s.offers.forEach((o) => (o.allergens = ["milk", "peanuts"]));
+  s.requests.forEach((r) => (r.excludes = ["dairy"]));
+  assert.equal(planRescue(s).metrics.allocated, 0);
+  s.requests.forEach((r) => (r.excludes = ["tree nuts"]));
+  assert.equal(planRescue(s).metrics.allocated, 0);
+});
 test("expired offers and unverified food never enter the plan", () => {
   const s = createScenario();
   s.now = 1100;
