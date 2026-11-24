@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="#why-this-problem-matters"><strong>The problem</strong></a> ·
   <a href="#start-the-demo"><strong>Get started</strong></a> ·
   <a href="#working-panels">Explore the features</a> ·
   <a href="docs/DEMO.md">Demo walkthrough</a> ·
@@ -21,6 +22,50 @@
 **Context matters.** Collection deadlines, declared allergens, chilled transport, vehicle capacity, and cancellations all shape the next decision. Offers, reservations, and received meals stay separate, so the dashboard shows what has actually happened in the demo.
 
 **Vertical:** sustainability and community logistics. **Primary persona:** a coordinator connecting food donors, community recipients, and volunteer drivers.
+
+## Why this problem matters
+
+**Food can be available, and a delivery can still fail.** Someone must identify a suitable recipient, find an available driver, check handling requirements, and complete the handoff before the collection window closes. When one detail changes, the coordinator needs to know which parts of the plan still work.
+
+UNEP’s **Food Waste Index Report 2024** estimates **1.05 billion tonnes of food waste in 2022** across households, food services, and retail, including inedible parts. RescueRoute focuses on a specific, actionable part of that wider problem: coordinating **donor-confirmed surplus meals** with community needs. It does not assume that all reported waste is recoverable food. [Source: UNEP](https://www.unep.org/en/news-and-stories/press-release/world-squanders-over-1-billion-meals-day-un-report)
+
+<p align="center">
+  <img src="docs/assets/coordination-gap.svg" alt="The coordination gap: available food must pass time, transport, and recipient checks before a confirmed handoff." width="100%">
+</p>
+
+### The problem we are solving
+
+> Help a food-rescue coordinator turn changing offers, recipient requirements, and volunteer availability into an explainable, feasible delivery plan—and keep a reliable record of what was actually received.
+
+Consider offers and requests arriving through separate messages. The difficult questions are practical:
+
+| The coordinator’s question                            | What can go wrong                                              | RescueRoute’s response                                                                    |
+| ----------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Can we collect and deliver in time?**               | A nearby offer can still miss its pickup or use-by deadline.   | Check readiness, travel estimates, collection, handover, and delivery windows.            |
+| **Is the declared food suitable for this recipient?** | The recipient excludes an ingredient the donor declared.       | Check declared allergen conflicts and require human review of the details.                |
+| **Do we have the right transport?**                   | The only chilled-capable volunteer becomes unavailable.        | Exclude the vehicle, release its uncollected reservations, and explain the remaining gap. |
+| **Has this food already been promised elsewhere?**    | Separate plans commit the same portions twice.                 | Reserve quantities atomically and reject stale confirmations.                             |
+| **Did the food reach its destination?**               | Scheduled portions are reported as delivered before a handoff. | Keep offered, reserved, and recipient-confirmed portions separate.                        |
+
+### Who this is for
+
+**The coordinator is the central user.** Donors describe what is available; recipients describe what they need and exclude; volunteers provide transport capacity and availability. The coordinator reviews those declarations and approves the plan. Each participant then sees the actions relevant to their part of the handoff.
+
+The intended benefit is a clearer next decision for a local food-rescue network: which offer can be collected, who can receive it, who can drive, and what is still missing. Actual waste reduction and community benefit would need to be measured in a real pilot.
+
+## See the problem change the plan
+
+The seeded scenario starts at **16:00**: three donors offer **80 meal portions**, two organisations request **80 portions**, and two volunteers have different transport capabilities. The earliest collection window closes at **16:40**. One donor’s **20 chilled portions** require a capable vehicle.
+
+| Change in the scenario                                                        | Expected result                                                    | What it demonstrates                                        |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Both volunteers are available.                                                | **80 portions allocated across four trips.**                       | Scheduling respects the combined constraints.               |
+| Alex, the chilled-capable volunteer, becomes unavailable before confirmation. | **60 portions allocated; 20 chilled portions remain unallocated.** | The assistant adapts and explains a concrete resource gap.  |
+| The 80-portion plan is confirmed, then another draft is built.                | **Those reserved portions cannot be allocated again.**             | A second plan cannot double-book the same supply or demand. |
+| A volunteer marks arrival.                                                    | **The portions remain awaiting receipt.**                          | Arrival alone does not establish delivery.                  |
+| The recipient or coordinator confirms receipt.                                | **Only those received portions enter the delivered total.**        | Reported outcomes follow the handoff record.                |
+
+**These are reproducible demonstration results, not real-world impact statistics.** The workflow is covered by the automated tests and the [cross-role demo walkthrough](docs/DEMO.md).
 
 ## Built around the whole rescue
 
@@ -65,12 +110,6 @@ RescueDemo!2026
 | Volunteer     | `alex@demo.rescueroute.test`        | Alex Morgan's profile, availability, assigned trips        |
 
 These credentials are intentionally public for local evaluation. Do not expose the demo to the internet or reuse its passwords. Accounts can be created, disabled, and given replacement passwords from the admin panel. A password reset revokes that account's existing sessions. Administrators cannot disable their own account.
-
-## Why this problem matters
-
-The [UNEP Food Waste Index 2024](https://www.unep.org/resources/publication/food-waste-index-report-2024) estimates 1.05 billion tonnes of food waste in 2022 across households, retail, and food services. RescueRoute addresses one operational slice: matching **donor-confirmed surplus meals** with recipient needs when time, ingredients, transport, and staffing are constrained.
-
-A donation is only useful when it can actually be collected and delivered. RescueRoute does not treat an attractive route diagram or an AI suggestion as a substitute for feasible logistics.
 
 ## Working panels
 
@@ -170,6 +209,8 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
+**Verification recorded during development: 45 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+
 The only package dependencies are development tools for DOM integration tests:
 
 ```sh
@@ -185,19 +226,21 @@ The jsdom tests are **DOM integration tests, not visual browser tests**. Native 
 
 ## Architecture
 
-| Module               | Responsibility                                                                    |
-| -------------------- | --------------------------------------------------------------------------------- |
-| `server.mjs`         | Local HTTP server, sessions, CSRF/origin/host checks, API and static allowlists   |
-| `lib/auth.mjs`       | Salted scrypt password hashes, constant-time comparison, expiring sessions        |
-| `lib/database.mjs`   | Fictional seed data, atomic file replacement, serial transaction queue            |
-| `lib/operations.mjs` | Roles, ownership, CRUD, approvals, reservations, lifecycle, audit, filtered views |
-| `lib/planner.mjs`    | Pure allocation function and separate feasibility audit                           |
-| `lib/allergens.mjs`  | Conservative label equivalences                                                   |
-| `lib/validation.mjs` | Input limits and scenario contracts                                               |
-| `lib/intake.mjs`     | System prompt, provider adapter, output cleaning, local parser                    |
-| `public/`            | Accessible semantic controls, role-aware interface, responsive CSS                |
-| `test/`              | Unit, domain, HTTP, persistence, and DOM integration tests                        |
-| `scripts/check.mjs`  | Syntax check across every JavaScript module                                       |
+| Module                 | Responsibility                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `server.mjs`           | Local HTTP server, sessions, CSRF/origin/host checks, API and static allowlists              |
+| `lib/auth.mjs`         | Salted scrypt password hashes, constant-time comparison, expiring sessions                   |
+| `lib/database.mjs`     | Fictional seed data, atomic file replacement, serial transaction queue                       |
+| `lib/operations.mjs`   | Roles, ownership, CRUD, approvals, reservations, lifecycle, audit, filtered views            |
+| `lib/planner.mjs`      | Pure allocation function and separate feasibility audit                                      |
+| `lib/geo.mjs`          | Geographic coordinates, illustrative placements, and great-circle distance                   |
+| `lib/live-network.mjs` | Role-filtered map state, live event streams, temporary GPS fixes, and labelled demo tracking |
+| `lib/allergens.mjs`    | Conservative label equivalences                                                              |
+| `lib/validation.mjs`   | Input limits and scenario contracts                                                          |
+| `lib/intake.mjs`       | System prompt, provider adapter, output cleaning, local parser                               |
+| `public/`              | Accessible semantic controls, role-aware interface, responsive CSS                           |
+| `test/`                | Unit, domain, HTTP, persistence, and DOM integration tests                                   |
+| `scripts/check.mjs`    | Syntax check across every JavaScript module                                                  |
 
 ## Security, efficiency, and accessibility
 

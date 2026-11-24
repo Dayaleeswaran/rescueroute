@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="310" viewBox="0 0 1280 310" role="img" aria-labelledby="title description">
+  <title id="title">From available food to an accountable handoff</title>
+  <desc id="description">Three connected stages: surplus exists; a coordinator checks time, transport, and declared dietary requirements; a recipient confirms the handoff. A posted offer is not yet a completed delivery.</desc>
+  <defs><linearGradient id="green" x2="1" y2="1"><stop stop-color="#193d2e"/><stop offset="1" stop-color="#2e573b"/></linearGradient></defs>
+  <rect x=".5" y=".5" width="1279" height="309" rx="16" fill="#f4f6ed" stroke="#dce4d2"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="32" y="35" font-size="10" fill="#617454" font-weight="700" letter-spacing="2">THE LAST MILE OF A FOOD DONATION</text>
+    <rect x="30" y="57" width="352" height="207" rx="12" fill="url(#green)"/>
+    <text x="52" y="87" font-size="10" fill="#c8d8b3" font-weight="700" letter-spacing="1.8">01 / SURPLUS EXISTS</text>
+    <text x="49" y="141" font-size="32" fill="#f4f5e7" font-weight="700" letter-spacing="-1">Good food is ready.</text>
+    <text x="52" y="175" font-size="14" fill="#d2dfc5">A donor offers meal portions.</text>
+    <text x="52" y="200" font-size="14" fill="#d2dfc5">A community has an unmet need.</text>
+    <text x="52" y="238" font-size="11" fill="#a6c08b">The collection window is already closing.</text>
+    <path d="M395 162H433M427 156L433 162 427 168" fill="none" stroke="#94aa7a" stroke-width="2"/>
+    <rect x="450" y="57" width="374" height="207" rx="12" fill="#fff" stroke="#d4dfc8"/>
+    <text x="473" y="87" font-size="10" fill="#6a7e58" font-weight="700" letter-spacing="1.8">02 / COORDINATION MAKES IT POSSIBLE</text>
+    <text x="473" y="131" font-size="22" fill="#29462d" font-weight="700">Can this trip actually happen?</text>
+    <g font-size="13" fill="#52694a"><circle cx="480" cy="162" r="3" fill="#cd9665"/><text x="493" y="166">Pickup and delivery windows</text><circle cx="480" cy="189" r="3" fill="#cd9665"/><text x="493" y="193">Driver capacity and chilled transport</text><circle cx="480" cy="216" r="3" fill="#cd9665"/><text x="493" y="220">Declared allergens and recipient needs</text></g>
+    <text x="473" y="244" font-size="11" fill="#768568">One cancellation can change the answer.</text>
+    <path d="M838 162H876M870 156L876 162 870 168" fill="none" stroke="#94aa7a" stroke-width="2"/>
+    <rect x="894" y="57" width="356" height="207" rx="12" fill="#e8eedc" stroke="#d0ddc0"/>
+    <text x="916" y="87" font-size="10" fill="#5d754b" font-weight="700" letter-spacing="1.8">03 / EVERY HANDOFF IS ACCOUNTED FOR</text>
+    <text x="916" y="131" font-size="23" fill="#29462d" font-weight="700">A plan. A person. A receipt.</text>
+    <text x="916" y="169" font-size="13" fill="#52694a">Reserve the meal portions.</text>
+    <text x="916" y="195" font-size="13" fill="#52694a">Record collection and arrival.</text>
+    <text x="916" y="221" font-size="13" fill="#52694a">Count delivery after recipient receipt.</text>
+    <path d="M1189 238 1196 245 1210 229" fill="none" stroke="#64854a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="32" y="289" font-size="10" fill="#68775d">RescueRoute supports this coordination workflow. Its demonstration uses fictional organisations and simulated handoffs.</text>
+  </g>
+</svg>
