@@ -1,8 +1,36 @@
-# RescueRoute
+# RescueRoute — Every meal has somewhere to go.
 
-**Every meal has somewhere to go.** A complete local food-rescue coordination demo with authenticated role portals, persistent records, approval queues, constraint-checked plans, inventory reservations, and a delivery handoff workflow.
+<p align="center">
+  <img src="docs/assets/rescueroute-banner.svg" alt="RescueRoute — Less waste. More connection. Connecting donors, volunteers, and communities." width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/project-badges.svg" alt="Node.js 22.13+ · Five user roles · Geographic live map · Optional AI · Working local demo" width="850">
+</p>
+
+<p align="center">
+  <a href="#start-the-demo"><strong>Get started</strong></a> ·
+  <a href="#working-panels">Explore the features</a> ·
+  <a href="docs/DEMO.md">Demo walkthrough</a> ·
+  <a href="docs/LIVE_MAP.md">Live map &amp; GPS</a> ·
+  <a href="#test-and-check">Run the tests</a>
+</p>
+
+**RescueRoute connects good food with the people who can use it.** It brings donors, community recipients, volunteers, and coordinators into one workspace—from a surplus-food message to a checked delivery plan and a recorded recipient receipt.
+
+**Context matters.** Collection deadlines, declared allergens, chilled transport, vehicle capacity, and cancellations all shape the next decision. Offers, reservations, and received meals stay separate, so the dashboard shows what has actually happened in the demo.
 
 **Vertical:** sustainability and community logistics. **Primary persona:** a coordinator connecting food donors, community recipients, and volunteer drivers.
+
+## Built around the whole rescue
+
+| From a message to a plan                                                                                                                            | From a plan to a handoff                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Thoughtful intake** — Extract stated facts, flag missing details, and ask for human review. Live AI is optional; the default parser needs no key. | **A portal for every role** — Admins, coordinators, donors, recipients, and volunteers see the records and actions relevant to them.   |
+| **Plans that respect constraints** — Check quantities, time windows, dietary declarations, transport requirements, and driver schedules.            | **A network you can explore** — Click donors, recipients, and volunteers on a geographic map with live updates and opt-in GPS sharing. |
+| **Room for real-world changes** — Rebuild around a cancellation while protecting existing reservations and food already in transit.                 | **A traceable finish** — Follow acceptance, pickup, arrival, and recipient receipt, then inspect the history or export the results.    |
+
+> **A working demonstration, with clear boundaries.** The seeded organisations and deliveries are fictional. Map placements, demo movement, shared GPS, and received meals are labelled explicitly. Road routing, food-safety certification, and real dispatch are outside this prototype’s scope.
 
 ## Start the demo
 

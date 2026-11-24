@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title description">
+  <title id="title">RescueRoute — Every meal has somewhere to go.</title>
+  <desc id="description">A food parcel with a leaf and a route connecting donors, volunteers, and communities, on a dark green background.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#10291f"/><stop offset="1" stop-color="#1e4837"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#89af66" stop-opacity=".16"/><stop offset="1" stop-color="#89af66" stop-opacity="0"/></radialGradient>
+    <linearGradient id="parcel" x2=".9" y2="1"><stop stop-color="#eff2ce"/><stop offset="1" stop-color="#c3d79a"/></linearGradient>
+    <linearGradient id="leaf" x2="1" y2="1"><stop stop-color="#668d4e"/><stop offset="1" stop-color="#315d42"/></linearGradient>
+  </defs>
+  <rect width="1280" height="400" rx="20" fill="url(#background)"/>
+  <rect x=".5" y=".5" width="1279" height="399" rx="20" fill="none" stroke="#375745"/>
+  <ellipse cx="238" cy="208" rx="230" ry="215" fill="url(#glow)"/>
+  <g fill="#a8be8b" opacity=".25"><circle cx="58" cy="62" r="2"/><circle cx="340" cy="65" r="2"/><circle cx="1188" cy="68" r="2"/><circle cx="1205" cy="328" r="2"/><circle cx="405" cy="338" r="2"/><circle cx="67" cy="327" r="2"/></g>
+  <path d="M69 257C97 324 260 347 306 278S310 106 373 110" fill="none" stroke="#7c9c66" stroke-width="2" stroke-dasharray="5 9" opacity=".7"/>
+  <circle cx="70" cy="256" r="8" fill="#dba06e"/><circle cx="373" cy="110" r="7" fill="#d5e3ac"/>
+  <ellipse cx="215" cy="302" rx="101" ry="14" fill="#071d15" opacity=".4"/>
+  <g transform="rotate(-7 215 207)">
+    <path d="M131 154 156 118H271L296 154V273Q296 291 278 291H149Q131 291 131 273Z" fill="url(#parcel)"/>
+    <path d="M131 154H296L271 118H156Z" fill="#f4edc9"/>
+    <path d="M198 118H228V155H198Z" fill="#d9dfb0"/>
+    <path d="M131 155H296" fill="none" stroke="#afc38b" stroke-width="2"/>
+    <path d="M211 232C185 225 176 202 184 183 210 184 224 201 217 224" fill="url(#leaf)"/>
+    <path d="M215 225C219 197 238 186 257 193 258 217 242 233 219 231" fill="#668b4f"/>
+    <path d="M213 218 219 253" stroke="#385c3c" stroke-width="5" stroke-linecap="round"/>
+    <path d="M168 118C168 83 257 83 257 118" fill="none" stroke="#d3dfaa" stroke-width="8"/>
+  </g>
+  <g fill="none" stroke="#b4ca91" opacity=".65" stroke-width="2"><path d="M100 125V143M91 134H109M331 220V236M323 228H339"/><circle cx="292" cy="74" r="4"/></g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="448" y="65" width="234" height="27" rx="13.5" fill="#294c36" stroke="#466444"/>
+    <circle cx="464" cy="78.5" r="3" fill="#c8dda1"/>
+    <text x="477" y="82.5" fill="#d3e0b7" font-size="10" font-weight="700" letter-spacing="1.7">FOOD RESCUE, COORDINATED</text>
+    <text x="444" y="177" fill="#f6f6e9" font-size="77" font-weight="700" letter-spacing="-3.5">Rescue<tspan fill="#cde0a7">Route</tspan></text>
+    <text x="449" y="220" fill="#e7ad80" font-size="14" font-weight="700" letter-spacing="3.5">LESS WASTE. MORE CONNECTION.</text>
+    <text x="449" y="260" fill="#c1d0bc" font-size="17">Every meal has somewhere to go.</text>
+    <path d="M449 289H1194" stroke="#48624b" opacity=".7"/>
+    <text x="449" y="326" fill="#e5ecd6" font-size="12" font-weight="700" letter-spacing="1.6">DONORS</text>
+    <path d="M546 322H587M581 317L587 322 581 327" fill="none" stroke="#8da77c" stroke-width="1.5"/>
+    <text x="608" y="326" fill="#e5ecd6" font-size="12" font-weight="700" letter-spacing="1.6">VOLUNTEERS</text>
+    <path d="M747 322H788M782 317L788 322 782 327" fill="none" stroke="#8da77c" stroke-width="1.5"/>
+    <text x="809" y="326" fill="#e5ecd6" font-size="12" font-weight="700" letter-spacing="1.6">COMMUNITIES</text>
+    <text x="1192" y="369" text-anchor="end" fill="#9aaf90" font-size="9" letter-spacing="1.5">A PRACTICAL FOOD-RESCUE ASSISTANT</text>
+  </g>
+</svg>
