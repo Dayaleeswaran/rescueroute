@@ -1,0 +1,15 @@
+{
+  "name": "rescueroute",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A constraint-aware food rescue coordination assistant",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check public/app.js && node --check lib/planner.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
