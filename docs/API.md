@@ -58,3 +58,7 @@ Mutations check the current user inside the serial transaction. Revisions protec
 - `500`: unexpected server/storage failure; failed transaction changes are not committed.
 
 The data store is not exposed as a static file. Export through the authenticated API; copying the local data file would include password hashes and should not be confused with a normal report export.
+
+## Geographic map and tracking
+
+`GET /api/events` supplies authenticated live invalidation events. `/api/state` includes role-filtered `mapData`. POST `/api/tracking/gps`, `/api/tracking/demo`, and `/api/tracking/stop` handle voluntary fixes and explicitly simulated movement. Profile writes accept optional `geo: [latitude, longitude]` and `locationLabel`; use null `geo` for an illustrative demo placement. Tracking does not change the planning revision. See [LIVE_MAP.md](LIVE_MAP.md) for the access rules, payloads, privacy, and deployment limits.

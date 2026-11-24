@@ -48,10 +48,10 @@ A donation is only useful when it can actually be collected and delivered. Rescu
 
 | Panel                      | Functionality                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Overview                   | Role-specific metrics, fictional network map, actionable links, recent notifications                           |
+| Overview                   | Role-specific metrics, geographic network map, actionable links, recent notifications                          |
 | Food offers                | Create, edit, withdraw, search, filter, review status, declared allergens, handling, use-by and transit limits |
 | Recipient needs            | Create, edit, withdraw, search, filter, priority, exclusions, delivery deadline                                |
-| Donor & recipient networks | Organisation profiles, contacts, grid locations, activation/deactivation                                       |
+| Donor & recipient networks | Organisation profiles, contacts, latitude/longitude, activation/deactivation                                   |
 | Volunteers                 | Profiles, capacity, vehicle, chilled capability, shifts, availability and cancellation                         |
 | Review queue               | Approve or reject submissions with an optional review note                                                     |
 | Rescue planner             | Build drafts, see unmet needs and explanations, confirm reservations, inspect persisted history                |
@@ -75,7 +75,7 @@ Permissions are enforced by the server, including record ownership and field whi
 7. Sign back in as admin. Inspect the received totals, activity log, and exports.
 8. As a donor, create a new offer. It enters review. A coordinator can approve it and include its remaining quantity in a new plan.
 
-Accounts in ordinary tabs share the same browser cookie. Sign out to switch roles, or use separate browser profiles for simultaneous sessions. Refresh each workspace after another account changes the network. The interface intentionally uses manual refresh rather than background polling.
+Accounts in ordinary tabs share the same browser cookie. Sign out to switch roles, or use separate browser profiles for simultaneous sessions. Authenticated server-sent events update panels automatically. Tracking updates preserve the map view, and editing forms defer incoming changes. Manual Refresh remains available if the connection is interrupted.
 
 See [docs/DEMO.md](docs/DEMO.md) for the judging script and [docs/API.md](docs/API.md) for permissions and endpoints.
 
@@ -136,6 +136,10 @@ Optional live mode: copy `.env.example` to `.env`, set `OPENAI_API_KEY`, choose 
 
 The adapter uses the [official structured-output format](https://developers.openai.com/api/docs/guides/structured-outputs). Structured output guarantees shape, not truth. Live provider behaviour has not been verified without credentials; its transport is covered by mocked tests. See [docs/PROMPT_EVALUATION.md](docs/PROMPT_EVALUATION.md).
 
+## Real map and live tracking
+
+Open **Live network** to explore clickable donors, recipients, and volunteers on a real OpenStreetMap basemap. The details panel shows offers, quantities, needs, contact details, windows, and tracking status. Coordinators can run explicitly labelled demo movement; volunteers can opt in to browser GPS sharing. Demo placements, entered coordinates, shared GPS, accuracy, and stale fixes are distinguished. Network state updates through authenticated server-sent events. See [docs/LIVE_MAP.md](docs/LIVE_MAP.md) for privacy, geographic planning, setup, and device limits, and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for map licensing.
+
 ## Test and check
 
 The only package dependencies are development tools for DOM integration tests:
@@ -174,7 +178,7 @@ The jsdom tests are **DOM integration tests, not visual browser tests**. Native 
 - CSRF tokens for authenticated mutations, same-origin checks, local-host restrictions, strict CSP, escaped UI text, and static-file allowlists.
 - Login throttling; intake cooldown, one provider request at a time, 3,000-character input limit, and a 20-second provider timeout. JSON bodies are limited to 48 KB.
 - Maximum 30 records per operational category, 60 accounts, 200 plan versions, 1,500 audit entries, and 250 stored notifications. Older notifications/audit entries are bounded; exported state includes the latest 200 audit entries and 50 relevant notifications.
-- No runtime dependencies, map API, external assets, telemetry, background polling, or bundling requirement. The bounded planner is intended for small coordinator workloads rather than global route optimisation.
+- No runtime package installation or bundling requirement. Leaflet 1.9.4 is vendored locally; visible basemap tiles load from OpenStreetMap. Opt-in GPS keeps only the latest fix in memory, with no tracking history. Server-sent events replace background polling. The bounded planner is intended for small coordinator workloads rather than global route optimisation.
 - CSV exports quote cells and neutralise leading spreadsheet formula characters. JSON exports omit password hashes and API credentials, but include participant contacts and should be handled appropriately.
 - Labelled form controls, semantic headings, native dialogs, status text in addition to colour, live feedback, visible focus, a skip link, responsive navigation, and reduced-motion support. The trip list is the textual map equivalent.
 
@@ -182,11 +186,11 @@ The jsdom tests are **DOM integration tests, not visual browser tests**. Native 
 
 All organisations, volunteers, addresses, and quantities are fictional. The simulation day is **25 November 2026**, starting at **16:00**. The clock is explicit and does not advance with real time. Event timestamps show when a demonstration action was recorded, not when a real delivery occurred.
 
-Locations are kilometre-grid points. Travel is straight-line distance at 24 km/h; routes are **not road navigation, traffic estimates, or actual ETAs**. Driver availability after a committed trip uses its planned completion time. Each trip collects from one donor and delivers to one recipient. No multi-donor load or route optimiser is claimed.
+New plans use geographic coordinates and great-circle distance at an assumed 24 km/h. Seeded grid locations are illustrative placements near Colombo; old plan snapshots are preserved. Travel links are straight lines; routes are **not road navigation, traffic estimates, or actual ETAs**. Driver availability after a committed trip uses its planned completion time. Each trip collects from one donor and delivers to one recipient. No multi-donor load or route optimiser is claimed.
 
 Food suitability, declared ingredients, temperatures, deadlines, and vehicle capability are human-provided. The app cannot certify safety, independently verify a cold chain, identify undisclosed allergens, or replace local food-handling procedures. Conservative label matching and transit limits are planning checks, not a food-safety assessment.
 
-The local JSON store is for a single-process demo. It is not a production multi-server database, backup service, or immutable audit ledger. Production use requires unique private credentials, HTTPS, durable database constraints and migrations, tested backup/recovery, real routing, verified food-handling policies, privacy review, and browser/accessibility testing. No payment system, external notifications, geolocation tracking, or actual dispatch is implemented.
+The local JSON store is for a single-process demo. It is not a production multi-server database, backup service, or immutable audit ledger. Production use requires unique private credentials, HTTPS, durable database constraints and migrations, tested backup/recovery, real routing, verified food-handling policies, privacy review, and browser/accessibility testing. No payment system, external messaging, traffic-aware routing, or actual dispatch is implemented. Opt-in browser geolocation and labelled demo movement are available, with the limitations in docs/LIVE_MAP.md.
 
 ## Challenge submission
 

@@ -7,6 +7,7 @@ import { Sessions, publicUser, verifyPassword } from "./lib/auth.mjs";
 import * as ops from "./lib/operations.mjs";
 import { extractOffer } from "./lib/intake.mjs";
 import { InputError } from "./lib/validation.mjs";
+import { LiveNetwork } from "./lib/live-network.mjs";
 
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
@@ -14,7 +15,32 @@ const assets = new Map([
   ["/styles.css", ["public/styles.css", "text/css"]],
   ["/platform.css", ["public/platform.css", "text/css"]],
   ["/icon.svg", ["public/icon.svg", "image/svg+xml"]],
+  ["/network-map.js", ["public/network-map.js", "text/javascript"]],
+  ["/network-map.css", ["public/network-map.css", "text/css"]],
+  [
+    "/vendor/leaflet/leaflet.js",
+    ["public/vendor/leaflet/leaflet.js", "text/javascript"],
+  ],
+  [
+    "/vendor/leaflet/leaflet.css",
+    ["public/vendor/leaflet/leaflet.css", "text/css"],
+  ],
+  [
+    "/vendor/leaflet/leaflet.js.map",
+    ["public/vendor/leaflet/leaflet.js.map", "application/json"],
+  ],
 ]);
+for (const name of [
+  "layers-2x.png",
+  "layers.png",
+  "marker-icon-2x.png",
+  "marker-icon.png",
+  "marker-shadow.png",
+])
+  assets.set(`/vendor/leaflet/images/${name}`, [
+    `public/vendor/leaflet/images/${name}`,
+    "image/png",
+  ]);
 async function body(req) {
   if (!req.headers["content-type"]?.startsWith("application/json"))
     throw new InputError("Content-Type must be application/json.");
@@ -42,16 +68,17 @@ export function createApp({
   database = new Database(),
 } = {}) {
   const sessions = new Sessions();
+  const live = new LiveNetwork(database);
   const loginAttempts = new Map();
   let aiBusy = false,
     lastIntake = 0;
   const server = createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Cache-Control", "no-store");
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     const json = (status, data) => {
       res.writeHead(status, {
@@ -164,8 +191,24 @@ export function createApp({
           csrf: session.csrf,
           intake: aiKey ? "live" : "local",
         });
-      if (req.method === "GET" && path === "/api/state")
-        return json(200, ops.stateView(database.read(), user));
+      if (req.method === "GET" && path === "/api/events")
+        return live.connect(req, res, () => {
+          const currentSession = sessions.get(req.headers.cookie),
+            db = database.read(),
+            u = db.users.find((u) => u.id === user.id);
+          return (
+            !!currentSession &&
+            !!u?.active &&
+            (u.authVersion || 0) === session.authVersion &&
+            db.instanceId === session.instanceId
+          );
+        });
+      if (req.method === "GET" && path === "/api/state") {
+        const db = database.read(),
+          view = ops.stateView(db, user);
+        view.mapData = live.view(db, user, view);
+        return json(200, view);
+      }
       if (req.method === "GET" && path === "/api/export") {
         const db = database.read();
         ops.manager(user);
@@ -174,7 +217,7 @@ export function createApp({
           demo: true,
           exportedAt: new Date().toISOString(),
           assumptions:
-            "Fictional city grid; 24 km/h; 4 minutes per stop; donor-declared handling; simulated handoffs.",
+            "Geographic straight-line planning distances; 24 km/h; 4 minutes per stop; illustrative demo placements unless entered manually; donor-declared handling; simulated handoffs.",
           ...ops.stateView(db, user),
         });
       }
@@ -184,7 +227,28 @@ export function createApp({
           error: "Invalid session token. Reload and try again.",
         });
       const data = await body(req);
+      const latest = database.read(),
+        currentUser = ops.actor(latest, user.id);
+      if (
+        !sessions.get(req.headers.cookie) ||
+        (currentUser.authVersion || 0) !== session.authVersion ||
+        latest.instanceId !== session.instanceId
+      )
+        throw new ops.AppError(401, "Your session changed. Sign in again.");
+      if (path === "/api/tracking/gps") {
+        live.gps(user, data);
+        return json(200, { ok: true });
+      }
+      if (path === "/api/tracking/demo") {
+        live.demo(user, data);
+        return json(200, { ok: true });
+      }
+      if (path === "/api/tracking/stop") {
+        live.stop(user, data.id);
+        return json(200, { ok: true });
+      }
       if (path === "/api/logout") {
+        live.logout(user);
         sessions.delete(session.token);
         res.setHeader(
           "Set-Cookie",
@@ -234,6 +298,8 @@ export function createApp({
           Object.assign(db, fresh);
         });
         sessions.clear();
+        live.fixes.clear();
+        live.broadcast("network", {});
         return json(200, { ok: true });
       }
       let result;
@@ -291,6 +357,7 @@ export function createApp({
     }
   });
   server.requestTimeout = 15000;
+  server.on("close", () => live.close());
   server.headersTimeout = 10000;
   server.maxHeadersCount = 50;
   return server;

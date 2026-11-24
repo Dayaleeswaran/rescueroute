@@ -37,6 +37,12 @@ async function harness(t) {
   w.HTMLDialogElement.prototype.close = function () {
     this.removeAttribute("open");
   };
+  w.eval(
+    await readFile(
+      new URL("../public/network-map.js", import.meta.url),
+      "utf8",
+    ),
+  );
   w.eval(await readFile(new URL("../public/app.js", import.meta.url), "utf8"));
   t.after(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -83,10 +89,79 @@ async function harness(t) {
   return { w, errors, q, wait, click, submit, value, signIn, signOut };
 }
 
+test("map entity selection exposes donor details and demo movement is visibly labelled", async (t) => {
+  const h = await harness(t);
+  await h.signIn("admin");
+  h.click('[data-nav="network"]');
+  h.click('[data-map-entity="donor:d1"]');
+  assert.match(h.q("#network-selected").textContent, /Vegetable rice bowls/);
+  assert.match(h.q("#network-selected").textContent, /Demo placement/);
+  h.click('[data-map-entity="volunteer:v1"]');
+  h.click("[data-demo-start]");
+  await h.wait(
+    () => h.q("#network-selected").textContent.includes("DEMO movement"),
+    "demo marker update",
+  );
+  h.click("[data-demo-stop]");
+  await h.wait(
+    () => h.q("#gps-message").textContent.includes("Demo movement stopped"),
+    "stop demo",
+  );
+  assert.deepEqual(h.errors, []);
+});
+
+test("GPS starts only on consent action and stopping waits for an in-flight fix before clearing it", async (t) => {
+  const h = await harness(t);
+  let callback,
+    watches = 0,
+    clears = 0;
+  Object.defineProperty(h.w.navigator, "geolocation", {
+    value: {
+      watchPosition(fn) {
+        watches++;
+        callback = fn;
+        return 7;
+      },
+      clearWatch(id) {
+        assert.equal(id, 7);
+        clears++;
+      },
+    },
+    configurable: true,
+  });
+  await h.signIn("volunteer");
+  h.click('[data-nav="network"]');
+  assert.equal(watches, 0);
+  h.click('[data-map-entity="volunteer:v1"]');
+  h.click("[data-gps-start]");
+  assert.equal(watches, 1);
+  const before = await (await h.w.fetch("/api/state")).json();
+  const pending = callback({
+    coords: { latitude: 6.92, longitude: 79.91, accuracy: 15 },
+  });
+  h.click("[data-gps-stop]");
+  await pending;
+  await h.wait(
+    () => h.q("#gps-message").textContent.includes("GPS sharing stopped"),
+    "clear in-flight GPS",
+  );
+  const after = await (await h.w.fetch("/api/state")).json();
+  assert.equal(after.mapData.entities.find((e) => e.id === "v1").fix, null);
+  assert.equal(after.revision, before.revision);
+  assert.equal(clears, 1);
+  await callback({
+    coords: { latitude: 6.93, longitude: 79.92, accuracy: 10 },
+  });
+  const late = await (await h.w.fetch("/api/state")).json();
+  assert.equal(late.mapData.entities.find((e) => e.id === "v1").fix, null);
+  assert.deepEqual(h.errors, []);
+});
+
 test("UI supports every administrator panel, profile creation, offer submission and approval", async (t) => {
   const h = await harness(t);
   await h.signIn("admin");
   for (const nav of [
+    "network",
     "offers",
     "requests",
     "donors",

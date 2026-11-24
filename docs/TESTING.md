@@ -35,3 +35,7 @@ DOM tests stub dialog methods, scroll behaviour, and cookie transport. They do n
 9. Test optional live AI only after configuring a server key; execute the semantic cases in `PROMPT_EVALUATION.md`.
 
 No automated test establishes actual food safety, real-world dispatch, or a globally optimal route. Those are outside the demo's claims.
+
+## Live map checks
+
+The suite also covers geographic distances, role-filtered location visibility, expiring GPS fixes, labelled demo isolation, authenticated SSE, click-through map details, and stopping an in-flight GPS update. Tile rendering, Leaflet interaction in a renderer, and real device permissions remain manual checks; DOM tests exercise the map list and controls with the renderer unavailable.

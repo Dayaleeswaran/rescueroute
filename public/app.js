@@ -72,11 +72,17 @@ async function api(path, data, method = "POST") {
   return result;
 }
 async function refresh() {
-  state.data = await api("/api/state");
+  const session = state.session;
+  const next = await api("/api/state");
+  if (session !== state.session) return;
+  state.data = next;
   renderShell();
   render();
+  startLive();
 }
 function showLogin() {
+  stopLiveResources();
+  window.RescueMap?.reset();
   state.session = null;
   state.data = null;
   $("workspace").hidden = true;
@@ -100,11 +106,12 @@ async function action(
       method,
     );
     if (path === "/api/plans/build") state.selectedPlan = result.result;
-    if (close) $("editor").close();
     await refresh();
+    if (close) $("editor").close();
     toast(message);
     return true;
   } catch (error) {
+    if (error.status === 401) $("editor").close();
     if (error.status === 409) await refresh().catch(() => {});
     if ($("editor").open) {
       const el = $("form-error");
@@ -123,6 +130,7 @@ async function action(
 }
 
 const NAV = [
+  ["network", "Live network", "◎", "all"],
   ["overview", "Overview", "▦", "all"],
   ["offers", "Food offers", "♧", "admin coordinator donor"],
   ["requests", "Recipient needs", "⌂", "admin coordinator recipient"],
@@ -191,39 +199,28 @@ function recentNotifications(limit = 5) {
         .join("")
     : empty("Network updates will appear here as the team takes action.");
 }
-function map() {
-  const d = state.data;
-  const latest =
-    d.plans.find((p) => p.id === state.selectedPlan) ||
-    d.plans.find((p) => ["draft", "confirmed"].includes(p.status));
-  const xy = (p) => [35 + p[0] * 42, 15 + p[1] * 24];
-  const marker = (p, color, label, n) => {
-    const [x, y] = xy(p);
-    return `<g><title>${esc(label)}</title><circle cx="${x}" cy="${y}" r="11" fill="${color}" stroke="white" stroke-width="3"/><text x="${x}" y="${y + 3}" fill="white" font-size="9" text-anchor="middle">${n}</text></g>`;
-  };
-  const paths = (latest?.assignments || [])
-    .filter((t) => t.status !== "cancelled")
-    .map((t) => {
-      const o = find("offers", t.offerId),
-        r = find("requests", t.requestId);
-      return o && r
-        ? `<polyline class="route" points="${xy(t.from).join(",")} ${xy(o.point).join(",")} ${xy(r.point).join(",")}"/>`
-        : "";
-    })
-    .join("");
-  return `<div class="map-canvas"><svg viewBox="0 0 580 290" role="img" aria-label="Fictional network map. Delivery cards provide all trip information in text."><rect width="580" height="290" fill="#eef0e7"/><path d="M355 0H425V75H355zM25 180H105V265H25zM210 95h75v60h-75z" fill="#e1e8d3"/>${[50, 120, 195, 275, 350, 430, 510].map((x) => `<path class="map-road-minor" d="M${x} 0L${x - 25} 300"/>`).join("")}<path class="map-road-minor" d="M0 50H580M0 120H580M0 205H580M0 265H580"/><path class="map-river" d="M-20 280C105 155 180 265 290 165S475 140 610 35"/><path class="map-road" d="M0 90L580 185M160 0L270 290"/><text x="50" y="30" class="map-area">MARKET QUARTER</text><text x="380" y="40" class="map-area">NORTHSIDE</text><text x="365" y="260" class="map-area">HARBOR CITY</text>${paths}${d.offers
-    .filter((o) => o.status === "approved")
-    .map((o, i) => marker(o.point, "#d28d59", o.name, i + 1))
-    .join("")}${d.requests
-    .filter((r) => r.status === "approved")
-    .map((r) => marker(r.point, "#416d53", r.name, "R"))
-    .join("")}${d.volunteers
-    .filter((v) => v.active)
-    .map((v) => marker(v.point, "#7a8b9c", v.name, "V"))
-    .join(
-      "",
-    )}</svg></div><div class="map-legend"><span><i class="legend-dot offer-dot"></i> Donor</span><span><i class="legend-dot recipient-dot"></i> Recipient</span><span><i class="legend-dot volunteer-dot"></i> Volunteer</span><span>Fictional km grid · straight-line estimates</span></div>`;
+function map(full = false) {
+  return (
+    window.RescueMap?.markup(full) ||
+    '<div class="empty-state">Loading the geographic map. Refresh if the map renderer is unavailable.</div>'
+  );
 }
+function network() {
+  return (
+    heading(
+      "LIVE NETWORK",
+      "A real map. A shared picture.",
+      "Explore donors, recipients, and volunteer positions. Demo placements, shared GPS fixes, and stale updates are labelled separately.",
+    ) +
+    panel(
+      "The rescue network",
+      "Click a marker or select an entity to inspect its details.",
+      map(true),
+    ) +
+    `<div class="network-live-activity">${panel("Live activity", "Relevant network changes appear automatically while connected.", recentNotifications(8))}</div>`
+  );
+}
+
 function overview() {
   const d = state.data,
     u = d.user,
@@ -372,7 +369,7 @@ function entityRows(kind) {
         return `<tr><td>${meta}${r.reviewNote ? `<small>Review: ${esc(r.reviewNote)}</small>` : ""}</td><td><strong>${r.meals}</strong><small>${r.delivered} delivered · ${r.reserved} reserved</small></td><td>${time(r.deadline)}<small>${kind === "offers" ? `${esc(r.handling)} · ${r.allergens.length ? esc(r.allergens.join(", ")) : "No allergens declared"}` : `Priority ${r.priority} · ${r.excludes.length ? `excludes ${esc(r.excludes.join(", "))}` : "no exclusions"}`}</small></td><td>${status(r.status)}</td><td>${actions}</td></tr>`;
       if (kind === "volunteers")
         return `<tr><td>${meta}<small>${esc(r.vehicle)}</small></td><td>${r.capacity} meals / trip<small>${r.chilled ? "Chilled capable" : "Ambient only"}</small></td><td>${time(r.available)}–${time(r.until)}</td><td>${status(r.active ? "active" : "inactive")}</td><td>${actions}</td></tr>`;
-      return `<tr><td>${meta}</td><td>(${r.point.join(", ")})<small>Fictional kilometre grid</small></td><td>${status(r.active ? "active" : "inactive")}</td><td>${actions}</td></tr>`;
+      return `<tr><td>${meta}</td><td>${r.geo ? `${r.geo[0].toFixed(5)}, ${r.geo[1].toFixed(5)}` : "Illustrative placement"}<small>${esc(r.locationLabel || (r.geo ? "Entered coordinates" : "Demo location on a real map"))}</small></td><td>${status(r.active ? "active" : "inactive")}</td><td>${actions}</td></tr>`;
     });
 }
 function entities(kind) {
@@ -596,13 +593,14 @@ function settings() {
       "A workspace with clear boundaries.",
       "Local persistence, simulation controls, and provider status.",
     ) +
-    `<div class="settings-grid">${panel("Network & simulation", "The clock can move forward only when no deliveries are active.", `<form id="settings-form" class="settings-form"><label for="setting-network">Network name</label><input id="setting-network" name="networkName" required maxlength="120" value="${esc(s.networkName)}"><label for="setting-city">City name</label><input id="setting-city" name="city" required maxlength="120" value="${esc(s.city)}"><label for="setting-now">Simulation clock (${s.serviceDate})</label><input id="setting-now" name="now" type="time" required min="${time(s.now)}" value="${time(s.now)}"><p class="fine-print">Fixed route assumptions: 24 km/h on a fictional kilometre grid, with 4 minutes each for pickup and handover.</p><button class="button dark" type="submit">Save settings</button><p id="settings-error" class="form-error" role="alert"></p></form>`)}<div class="stack">${panel("AI connection", state.session.intake === "live" ? "Live extraction configured" : "Local parser enabled", `<div class="settings-copy"><p>${state.session.intake === "live" ? "Submitted donor messages are sent to OpenAI for structured extraction. Every draft still requires human review." : "No API key is configured. The working local parser supports labelled fields, quantities, and explicit deadlines."}</p><p>Configure OPENAI_API_KEY in the server’s .env file and restart to enable live AI. Keys are never accepted or displayed in the browser.</p></div>`)}${panel("Demo data controls", "This affects all accounts and all local operational records.", `<div class="settings-copy"><p>Records persist in the local data file across browser refreshes and server restarts. Export a report before resetting anything you want to keep.</p>${button("Export current report", "export", "", true)}${button("Reset the demo network", "reset", "", true)}</div>`)}</div></div>`
+    `<div class="settings-grid">${panel("Network & simulation", "The clock can move forward only when no deliveries are active.", `<form id="settings-form" class="settings-form"><label for="setting-network">Network name</label><input id="setting-network" name="networkName" required maxlength="120" value="${esc(s.networkName)}"><label for="setting-city">City name</label><input id="setting-city" name="city" required maxlength="120" value="${esc(s.city)}"><label for="setting-now">Simulation clock (${s.serviceDate})</label><input id="setting-now" name="now" type="time" required min="${time(s.now)}" value="${time(s.now)}"><p class="fine-print">Planning assumptions: geographic straight-line distance at 24 km/h, with 4 minutes each for pickup and handover.</p><button class="button dark" type="submit">Save settings</button><p id="settings-error" class="form-error" role="alert"></p></form>`)}<div class="stack">${panel("AI connection", state.session.intake === "live" ? "Live extraction configured" : "Local parser enabled", `<div class="settings-copy"><p>${state.session.intake === "live" ? "Submitted donor messages are sent to OpenAI for structured extraction. Every draft still requires human review." : "No API key is configured. The working local parser supports labelled fields, quantities, and explicit deadlines."}</p><p>Configure OPENAI_API_KEY in the server’s .env file and restart to enable live AI. Keys are never accepted or displayed in the browser.</p></div>`)}${panel("Demo data controls", "This affects all accounts and all local operational records.", `<div class="settings-copy"><p>Records persist in the local data file across browser refreshes and server restarts. Export a report before resetting anything you want to keep.</p>${button("Export current report", "export", "", true)}${button("Reset the demo network", "reset", "", true)}</div>`)}</div></div>`
   );
 }
 function render() {
   if (!state.data) return;
   const pages = {
     overview,
+    network,
     approvals,
     plans,
     deliveries,
@@ -633,9 +631,11 @@ function render() {
         ),
       ),
   };
+  window.RescueMap?.destroy();
   $("page-content").innerHTML = pages[state.view]
     ? pages[state.view]()
     : entities(state.view);
+  mountNetwork();
 }
 function navigate(view) {
   if (
@@ -677,6 +677,10 @@ function editEntity(kind, id, draft = {}) {
   const openedRevision = state.data.revision;
   let fields;
   if (["donors", "recipients", "volunteers"].includes(kind)) {
+    const placement = r.geo ||
+      state.data.mapData?.entities.find((e) => e.id === r.id)?.coordinates || [
+        6.917, 79.877,
+      ];
     fields =
       field("name", "Name", r.name, "text", 'required maxlength="120"') +
       field(
@@ -686,19 +690,36 @@ function editEntity(kind, id, draft = {}) {
         "text",
         'required maxlength="120"',
       ) +
-      field(
-        "x",
-        "Grid location · X (km)",
-        r.point?.[0] ?? 3,
-        "number",
-        'min="0" max="12" step="0.1" required',
+      select(
+        "locationMode",
+        "Map placement",
+        r.geo ? "manual" : "demo",
+        [
+          ["demo", "Illustrative demo placement"],
+          ["manual", "Use the coordinates below"],
+        ],
+        "required",
       ) +
       field(
-        "y",
-        "Grid location · Y (km)",
-        r.point?.[1] ?? 3,
+        "locationLabel",
+        "Address or location label (optional)",
+        r.locationLabel || "",
+        "text",
+        'maxlength="180"',
+      ) +
+      field(
+        "latitude",
+        "Latitude",
+        placement[0],
         "number",
-        'min="0" max="12" step="0.1" required',
+        'required min="-85" max="85" step="any"',
+      ) +
+      field(
+        "longitude",
+        "Longitude",
+        placement[1],
+        "number",
+        'required min="-180" max="180" step="any"',
       );
     if (kind === "volunteers")
       fields +=
@@ -875,7 +896,11 @@ function editEntity(kind, id, draft = {}) {
     input.revision = openedRevision;
     if (old) input.id = old.id;
     if (["donors", "recipients", "volunteers"].includes(kind)) {
-      input.point = [Number(input.x), Number(input.y)];
+      input.point = old?.point || [3, 3];
+      input.geo =
+        input.locationMode === "manual"
+          ? [Number(input.latitude), Number(input.longitude)]
+          : null;
       input.active = f.has("active");
     }
     if (kind === "volunteers") {
@@ -991,7 +1016,7 @@ function confirmAction(title, description, callback, label = "Confirm") {
 function explain() {
   openEditor(
     "A plan you can understand.",
-    '<div class="explain-copy"><p>AI extracts donor messages into drafts. A human reviews missing facts. A deterministic planner then selects trips from approved, unreserved supply and demand.</p><ol><li>Exclude unapproved offers, unavailable volunteers, and declared allergen conflicts.</li><li>Require chilled capability, donor readiness, collection deadlines, donor use-by and transit limits, recipient windows, and driver shift limits.</li><li>Score feasible trips by urgency, priority, load size, travel distance, and scarce chilled capacity.</li><li>Update quantities and each driver’s position after every selection.</li><li>Independently audit the plan and recheck it when a coordinator confirms.</li></ol><p>Confirmation reserves stock. Pickup begins transport. Recipient receipt counts the meals as delivered. Cancelling releases only uncollected reservations.</p><p>The heuristic is not globally optimal. Routes are straight lines on a fictional grid, at 24 km/h with 4-minute handovers. Donor declarations are not an independent food-safety certificate.</p></div>',
+    '<div class="explain-copy"><p>AI extracts donor messages into drafts. A human reviews missing facts. A deterministic planner then selects trips from approved, unreserved supply and demand.</p><ol><li>Exclude unapproved offers, unavailable volunteers, and declared allergen conflicts.</li><li>Require chilled capability, donor readiness, collection deadlines, donor use-by and transit limits, recipient windows, and driver shift limits.</li><li>Score feasible trips by urgency, priority, load size, travel distance, and scarce chilled capacity.</li><li>Update quantities and each driver’s position after every selection.</li><li>Independently audit the plan and recheck it when a coordinator confirms.</li></ol><p>Confirmation reserves stock. Pickup begins transport. Recipient receipt counts the meals as delivered. Cancelling releases only uncollected reservations.</p><p>The heuristic is not globally optimal. Routes use geographic straight-line distances at an assumed 24 km/h with 4-minute handovers; they are not road directions. Donor declarations are not an independent food-safety certificate.</p></div>',
   );
 }
 function download(name, value, type) {
@@ -1222,6 +1247,8 @@ $("refresh-button").addEventListener("click", async () => {
 });
 $("logout-button").addEventListener("click", async () => {
   try {
+    await stopGps(false);
+    await stopDemo(false);
     await api("/api/logout", {});
     showLogin();
   } catch (e) {
@@ -1253,6 +1280,247 @@ $("login-form").addEventListener("submit", async (e) => {
   } finally {
     b.disabled = false;
   }
+});
+
+let eventStream = null,
+  liveTimer = null,
+  livePending = false,
+  liveRefreshing = false,
+  tickTimer = null;
+let gpsWatch = null,
+  lastGpsSent = 0,
+  gpsMessage = "Not sharing GPS.",
+  demoTimer = null,
+  demoId = null;
+let gpsGeneration = 0,
+  gpsRequest = Promise.resolve(),
+  demoRequest = Promise.resolve(),
+  demoInFlight = false;
+let connectionStatus = "Connecting to network updates?";
+function streamStatus() {
+  const el = $("network-stream-status");
+  if (el) el.textContent = connectionStatus;
+}
+function trackingMessage(message) {
+  gpsMessage = message;
+  const el = $("gps-message");
+  if (el) el.textContent = message;
+}
+function mountNetwork() {
+  if (!state.data?.mapData) return;
+  window.RescueMap?.mount(state.data.mapData, {
+    role: state.data.user.role,
+    startGps,
+    stopGps,
+    startDemo,
+    stopDemo,
+    gpsStatus: () => gpsMessage,
+    streamStatus,
+  });
+}
+function stopLiveResources() {
+  ++gpsGeneration;
+  eventStream?.close();
+  eventStream = null;
+  clearTimeout(liveTimer);
+  clearInterval(tickTimer);
+  tickTimer = null;
+  if (gpsWatch !== null) navigator.geolocation?.clearWatch(gpsWatch);
+  gpsWatch = null;
+  clearInterval(demoTimer);
+  demoTimer = null;
+  demoId = null;
+  livePending = false;
+  gpsMessage = "Not sharing GPS.";
+  window.RescueMap?.destroy();
+}
+async function liveRefresh() {
+  if (!state.session) return;
+  if (state.busy || $("editor").open || liveRefreshing) {
+    livePending = true;
+    return;
+  }
+  liveRefreshing = true;
+  const session = state.session;
+  try {
+    const next = await api("/api/state");
+    if (!state.session || session !== state.session) return;
+    if (state.busy || $("editor").open) {
+      livePending = true;
+      return;
+    }
+    const sameRevision = state.data?.revision === next.revision;
+    state.data = next;
+    if (sameRevision) window.RescueMap?.update(next.mapData);
+    else {
+      renderShell();
+      render();
+    }
+  } catch (e) {
+    if (e.status !== 401) {
+      connectionStatus = "Connection interrupted - retrying";
+      streamStatus();
+    }
+  } finally {
+    liveRefreshing = false;
+  }
+}
+function queueLiveRefresh() {
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(liveRefresh, 150);
+}
+function startLive() {
+  if (!state.session || eventStream) return;
+  if (!window.EventSource) {
+    connectionStatus = "Live connection unavailable - use Refresh";
+    streamStatus();
+    return;
+  }
+  eventStream = new EventSource("/api/events");
+  eventStream.addEventListener("connected", () => {
+    connectionStatus = "Live network updates connected";
+    streamStatus();
+    queueLiveRefresh();
+  });
+  eventStream.addEventListener("network", queueLiveRefresh);
+  eventStream.addEventListener("tracking", queueLiveRefresh);
+  eventStream.addEventListener("session-expired", () => {
+    showLogin();
+    toast("Your session changed. Please sign in again.");
+  });
+  eventStream.onerror = () => {
+    connectionStatus = "Reconnecting to network updates...";
+    streamStatus();
+  };
+  tickTimer = setInterval(() => {
+    window.RescueMap?.tick();
+    if (livePending && !state.busy && !$("editor").open) {
+      livePending = false;
+      queueLiveRefresh();
+    }
+  }, 1500);
+}
+function startGps() {
+  if (gpsWatch !== null) return toast("Location sharing is already active.");
+  if (!navigator.geolocation)
+    return trackingMessage("This browser does not provide geolocation.");
+  const generation = ++gpsGeneration;
+  trackingMessage("Waiting for browser location permission...");
+  lastGpsSent = 0;
+  gpsWatch = navigator.geolocation.watchPosition(
+    async (position) => {
+      if (
+        generation !== gpsGeneration ||
+        gpsWatch === null ||
+        Date.now() - lastGpsSent < 5000
+      )
+        return;
+      lastGpsSent = Date.now();
+      try {
+        gpsRequest = api("/api/tracking/gps", {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        await gpsRequest;
+        if (generation !== gpsGeneration) return;
+        trackingMessage(
+          `Sharing GPS - reported accuracy +/-${Math.round(position.coords.accuracy)} m. Stop sharing at any time.`,
+        );
+        queueLiveRefresh();
+      } catch (e) {
+        trackingMessage(`Location was not shared: ${e.message}`);
+      }
+    },
+    (error) => {
+      const message =
+        error.code === 1
+          ? "Location permission denied. No new location was shared."
+          : "Location unavailable. Check device settings and retry.";
+      stopGps(false).finally(() => trackingMessage(message));
+    },
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+  );
+}
+async function stopGps(showMessage = true) {
+  ++gpsGeneration;
+  if (gpsWatch !== null) navigator.geolocation?.clearWatch(gpsWatch);
+  const wasSharing = gpsWatch !== null;
+  gpsWatch = null;
+  await gpsRequest.catch(() => {});
+  if (state.session && state.data?.user.role === "volunteer") {
+    try {
+      await api("/api/tracking/stop", {});
+      if (showMessage || wasSharing)
+        trackingMessage(
+          "GPS sharing stopped. Your last shared fix was removed.",
+        );
+      queueLiveRefresh();
+    } catch (e) {
+      if (showMessage)
+        trackingMessage(
+          `Device watching stopped. Server could not clear the old fix; it expires within 10 minutes. ${e.message}`,
+        );
+    }
+  }
+}
+async function startDemo(id) {
+  if (!id) return trackingMessage("No available volunteer to simulate.");
+  await stopDemo(false);
+  demoId = id;
+  let progress = 0;
+  const send = async () => {
+    if (!demoId || !state.session || demoInFlight) return;
+    demoInFlight = true;
+    try {
+      demoRequest = api("/api/tracking/demo", { id, progress });
+      await demoRequest;
+      if (demoId !== id) return;
+      trackingMessage(
+        "DEMO movement running. This is not GPS or an actual delivery.",
+      );
+      queueLiveRefresh();
+      progress = (progress + 0.025) % 1;
+    } catch (e) {
+      clearInterval(demoTimer);
+      demoTimer = null;
+      demoId = null;
+      trackingMessage(e.message);
+    } finally {
+      demoInFlight = false;
+    }
+  };
+  await send();
+  if (demoId) demoTimer = setInterval(send, 1500);
+}
+async function stopDemo(showMessage = true) {
+  clearInterval(demoTimer);
+  demoTimer = null;
+  const id = demoId;
+  demoId = null;
+  await demoRequest.catch(() => {});
+  if (id && state.session) {
+    try {
+      await api("/api/tracking/stop", { id });
+      queueLiveRefresh();
+    } catch (e) {
+      if (showMessage) return trackingMessage(e.message);
+    }
+  }
+  if (showMessage) trackingMessage("Demo movement stopped.");
+}
+window.addEventListener("pagehide", () => {
+  if (gpsWatch !== null && state.session)
+    fetch("/api/tracking/stop", {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": state.session.csrf,
+      },
+      body: "{}",
+    }).catch(() => {});
+  stopLiveResources();
 });
 async function start() {
   try {
