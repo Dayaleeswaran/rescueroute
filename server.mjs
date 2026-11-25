@@ -28,6 +28,8 @@ const INTAKE_COOLDOWN_MS = 1200;
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
   ["/app.js", ["public/app.js", "text/javascript"]],
+  ["/app-views.js", ["public/app-views.js", "text/javascript"]],
+  ["/app-forms.js", ["public/app-forms.js", "text/javascript"]],
   ["/rescue-motion.js", ["public/rescue-motion.js", "text/javascript"]],
   ["/motion.css", ["public/motion.css", "text/css"]],
   ["/rescue-live.js", ["public/rescue-live.js", "text/javascript"]],
