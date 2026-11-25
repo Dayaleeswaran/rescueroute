@@ -221,3 +221,47 @@ test("authenticated event streams carry invalidation events, not private locatio
     abort.abort();
   }
 });
+test("live network enforces connection limits, GPS rate limits, and demo/stop guards", (t) => {
+  const db = new Database({ initial: structuredClone(seed) });
+  let now = 10000;
+  const live = new LiveNetwork(db, () => now);
+  t.after(() => live.close());
+
+  // Destroyed client is removed without throwing.
+  const dead = { res: { destroyed: true, writableEnded: false } };
+  assert.equal(live.send(dead, "ping"), false);
+
+  // Connection cap at 32 clients.
+  const mockRes = () => ({
+    destroyed: false,
+    writableEnded: false,
+    writeHead() {},
+    write: () => true,
+    on() {},
+    end() {},
+    destroy() {},
+  });
+  for (let i = 0; i < 32; i++) live.connect({}, mockRes(), () => true);
+  assert.throws(() => live.connect({}, mockRes(), () => true), /Too many live connections/);
+
+  // GPS rate limit (within 2000ms) and unauthorized stop.
+  live.gps(user(db, "u8"), { latitude: 6.92, longitude: 79.9, accuracy: 20 });
+  assert.throws(
+    () => live.gps(user(db, "u8"), { latitude: 6.93, longitude: 79.91, accuracy: 15 }),
+    /one every two seconds/,
+  );
+  assert.throws(() => live.stop(user(db, "u1"), "v1"), /stop your own GPS/);
+
+  // Demo tracking validation and conflict against active GPS fix.
+  assert.throws(
+    () => live.demo(user(db, "u1"), { id: "v1", progress: 1.5 }),
+    /progress fraction/,
+  );
+  assert.throws(
+    () => live.demo(user(db, "u1"), { id: "v1", progress: 0.5 }),
+    /Demo movement cannot replace/,
+  );
+  now += 2500;
+  live.stop(user(db, "u8"), "v1");
+  assert.equal(live.fix("v1"), null);
+});
