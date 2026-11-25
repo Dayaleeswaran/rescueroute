@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM, VirtualConsole } from "jsdom";
 import { createApp } from "../server.mjs";
+import axe from "axe-core";
 
 // DOM integration tests exercise real HTTP and app event handlers. They do not
 // test rendering, layout, focus behaviour, or a screen reader.
-async function harness(t) {
-  const server = createApp({ aiKey: "" });
+async function harness(t, options = {}) {
+  const server = createApp({ aiKey: "", ...options });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const errors = [],
@@ -88,6 +89,103 @@ async function harness(t) {
   await wait(() => !q("#login-screen").hidden, "initial login");
   return { w, errors, q, wait, click, submit, value, signIn, signOut };
 }
+
+test("Gemini failure is visibly labelled as local fallback and preserves reviewed form fields", async (t) => {
+  const h = await harness(t, {
+    aiKey: "test-only",
+    fetcher: async () => new Response("", { status: 401 }),
+  });
+  await h.signIn("donor");
+  h.click('[data-nav="offers"]');
+  h.click('[data-action="new"][data-kind="offers"]');
+  h.value(
+    "#intake-message",
+    "Donor: Green Table\nFood: Rice bowls\n15 meals. Collect by 17:30.\nHandling: chilled\nAllergens: none",
+  );
+  h.click("#extract-offer");
+  await h.wait(
+    () => h.q("#extract-result").textContent.includes("Local contextual draft"),
+    "Gemini fallback",
+  );
+  assert.match(h.q("#extract-result").textContent, /Gemini rejected/);
+  assert.equal(h.q("#field-meals").value, "15");
+  assert.equal(h.q("#extract-result").getAttribute("aria-busy"), "false");
+  assert.equal(h.q('[name="donorConfirmed"]').checked, false);
+  assert.match(h.q("#extract-result").textContent, /View the source facts/);
+});
+
+test("key admin views and offer form pass DOM-level WCAG checks (contrast excluded)", async (t) => {
+  const h = await harness(t);
+  await h.signIn("admin");
+  h.w.eval(axe.source);
+  const audit = async (name) => {
+    const result = await h.w.axe.run(h.w.document, {
+      runOnly: {
+        type: "tag",
+        values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+      },
+      rules: { "color-contrast": { enabled: false } },
+    });
+    assert.equal(
+      result.violations.length,
+      0,
+      `${name}: ${JSON.stringify(result.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target) })))}`,
+    );
+  };
+  await audit("overview");
+  h.click('[data-nav="network"]');
+  await audit("network");
+  h.click('[data-nav="settings"]');
+  await audit("settings");
+  h.click('[data-nav="offers"]');
+  h.click('[data-action="new"][data-kind="offers"]');
+  await audit("offer form");
+});
+
+test("new intake clears unsupported old facts and revokes earlier donor confirmation", async (t) => {
+  const h = await harness(t);
+  await h.signIn("donor");
+  h.click('[data-nav="offers"]');
+  h.click('[data-action="new"][data-kind="offers"]');
+  h.value("#field-meals", "50");
+  h.value("#field-allergens", "none");
+  h.q('[name="donorConfirmed"]').checked = true;
+  h.value("#intake-message", "Food: Rice bowls");
+  h.click("#extract-offer");
+  await h.wait(() => h.q("#extract-result").textContent.includes("Local contextual draft"), "replacement intake");
+  assert.equal(h.q("#field-food").value, "Rice bowls");
+  assert.equal(h.q("#field-meals").value, "");
+  assert.equal(h.q("#field-allergens").value, "");
+  assert.equal(h.q('[name="donorConfirmed"]').checked, false);
+});
+
+test("an intake response cannot update a replacement editor", async (t) => {
+  let release, started = false;
+  const blocked = new Promise((resolve) => { release = resolve; });
+  const h = await harness(t, {
+    aiKey: "test-only",
+    fetcher: async () => {
+      started = true;
+      await blocked;
+      return new Response("", { status: 401 });
+    },
+  });
+  await h.signIn("donor");
+  h.click('[data-nav="offers"]');
+  h.click('[data-action="new"][data-kind="offers"]');
+  h.click("#fill-sample");
+  const oldOutput = h.q("#extract-result");
+  h.click("#extract-offer");
+  await h.wait(() => started, "provider request started");
+  h.click("#close-editor");
+  h.click('[data-action="new"][data-kind="offers"]');
+  h.value("#field-meals", "9");
+  release();
+  await h.wait(() => oldOutput.getAttribute("aria-busy") === "false", "old request finished");
+  assert.equal(h.q("#field-meals").value, "9");
+  assert.equal(h.q("#extract-result").textContent, "");
+  assert.deepEqual(h.errors, []);
+});
 
 test("map entity selection exposes donor details and demo movement is visibly labelled", async (t) => {
   const h = await harness(t);
@@ -279,7 +377,7 @@ test("UI form fields safely render untrusted text and local intake leaves unknow
   );
   h.click("#extract-offer");
   await h.wait(
-    () => h.q("#extract-result").textContent.includes("Local parser draft"),
+    () => h.q("#extract-result").textContent.includes("Local contextual draft"),
     "local extraction",
   );
   assert.equal(h.q("#field-meals").value, "15");

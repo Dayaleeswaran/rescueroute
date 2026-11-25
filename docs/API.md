@@ -62,3 +62,9 @@ The data store is not exposed as a static file. Export through the authenticated
 ## Geographic map and tracking
 
 `GET /api/events` supplies authenticated live invalidation events. `/api/state` includes role-filtered `mapData`. POST `/api/tracking/gps`, `/api/tracking/demo`, and `/api/tracking/stop` handle voluntary fixes and explicitly simulated movement. Profile writes accept optional `geo: [latitude, longitude]` and `locationLabel`; use null `geo` for an illustrative demo placement. Tracking does not change the planning revision. See [LIVE_MAP.md](LIVE_MAP.md) for the access rules, payloads, privacy, and deployment limits.
+
+## Intake provenance and fallback
+
+`POST /api/intake` returns `draft`, `mode` (`live` or `local`), `provider`, `configuredModel`, `actualModel`, `fallback`, `questions`, `warnings`, `evidence`, `graph`, `completeness`, `timings`, and an unapproved-draft `notice`. `fallback` contains a sanitised reason, whether a provider attempt occurred, and a display message. No API key or raw provider error is exposed. The graph contains extracted facts and source evidence, not private model reasoning.
+
+Provider failures normally return a successful local draft with explicit fallback metadata; invalid user input still returns a client error. Server authentication, role checks, CSRF, cooldown, and concurrent-request controls still apply. A configured key indicates configuration only, not verified provider connectivity.

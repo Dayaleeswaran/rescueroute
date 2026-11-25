@@ -2,6 +2,65 @@
 :root {
   --muted: #606c60;
 }
+.intake-processing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.intake-processing progress {
+  width: 100%;
+  height: 6px;
+  accent-color: #3c693c;
+}
+.intake-review {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #d7e1cb;
+  border-radius: 8px;
+  background: #f5f8ee;
+}
+.intake-review p,
+.intake-review li {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #43573c;
+}
+.intake-review p {
+  margin: 10px 0;
+}
+.intake-review ul {
+  padding-left: 19px;
+}
+.intake-review summary {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 0;
+}
+.intake-evidence {
+  margin: 8px 0;
+}
+.intake-evidence > div {
+  padding: 10px 0;
+  border-top: 1px solid #dce5d2;
+}
+.intake-evidence dt {
+  font-size: 11px;
+  font-weight: 700;
+}
+.intake-evidence dd {
+  margin: 5px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.intake-evidence small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #465c3f;
+}
 .trip-contact {
   font-size: 11px;
   color: #58694f;

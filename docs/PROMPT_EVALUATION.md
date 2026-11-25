@@ -1,6 +1,6 @@
 # Prompt evaluation
 
-The prompt is executable source in `lib/intake.mjs`, not an unused prose artefact. Its role is faithful extraction and targeted clarification. Allocation arithmetic is deliberately performed by validated code.
+The prompt is executable source in `lib/intake-contract.mjs`, not an unused prose artefact. Its role is faithful extraction and targeted clarification. Allocation arithmetic is deliberately performed by validated code.
 
 ## Evaluation procedure
 
@@ -32,3 +32,11 @@ These are evaluation cases, **not claimed live-model results**. The local parser
 - A draft cannot be added without completion of the required review form and donor-confirmation checkbox.
 
 Structured output ensures shape, not truth. Human review remains part of the workflow even when all extracted fields are populated.
+
+## Recorded automated evidence
+
+`npm run evaluate` passes 24/24 fixed local fixtures in `test/fixtures/intake-cases.json`. They cover explicit facts, contextual deadlines, conflicting quantities, invalid input, unknown allergens, and instruction-like text. This is a regression set, not a representative accuracy estimate for unrestricted language.
+
+Mocked Gemini tests verify the REST request, JSON schema, returned model metadata, strict field validation, unsupported facts, blocked/truncated output, malformed JSON, bad credentials, missing models, rate limits, server failures, offline behaviour, timeouts, circuit recovery, and the public allowance. They establish application behaviour against controlled responses, not Google's live semantic quality. A separate running-app request returned model-unavailable and correctly used labelled local fallback; successful live extraction remains unverified.
+
+Before claiming live-model quality, run the cases above using an authorised key, record configured and returned model versions, repeat each case, and report extraction errors and unsupported assertions. The stricter local grounding rules may conservatively fall back on expressions outside their vocabulary. Neither path bypasses human confirmation.

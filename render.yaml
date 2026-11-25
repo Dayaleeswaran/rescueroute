@@ -14,5 +14,7 @@ services:
         value: 22.22.2
       - key: PUBLIC_DEMO
         value: "true"
+      - key: PUBLIC_AI_ENABLED
+        value: "false"
       - key: NODE_ENV
         value: production

@@ -337,7 +337,7 @@ function overview() {
           ]
         : roleItems,
     ) +
-    `<div class="dashboard-grid"><div class="stack">${managed() ? panel("The rescue network", "A shared picture of supply, demand, and people.", map()) : panel("Your next handoffs", "Every update is recorded in the delivery timeline.", trips.slice(0, 3).map(tripCard).join("") || empty("No deliveries assigned yet. Your coordinator will confirm a plan."))}${panel("Latest network updates", "Persisted notifications relevant to your role.", recentNotifications())}</div><div class="stack">${panel("Your coordination copilot", state.session.intake === "live" ? "Live AI extraction connected" : "Local parser · AI not connected", `<div class="copilot-copy"><span class="assistant-symbol" aria-hidden="true">✳</span><p>${managed() ? `<strong>${atRisk.length} approved offers</strong> have remaining food and close within 45 simulation minutes.` : "Your workspace shows only records you own or need for an assigned delivery."}</p><p>Plans respect declared allergens, transport capability, quantities, pickup windows, and donor transit limits.</p>${button("Understand the decisions ↗", "explain", "", true)}</div>`)}${panel("A clear next step", "Useful actions for this session.", `<div class="quick-actions">${managed() ? `${button(`Review ${t.pending} pending records`, "approvals", "", true)}${button("Open rescue planner", "plans", "", true)}${button("Track delivery progress", "deliveries", "", true)}` : `${button("View delivery assignments", "deliveries", "", true)}${button("Read notifications", "notifications", "", true)}`}</div>`)}<div class="impact-note"><span>↗</span><p><strong>Evidence over estimates.</strong><br>Delivered meals are counted only after recipient confirmation. Scheduled meals stay separate.</p></div></div></div>`
+    `<div class="dashboard-grid"><div class="stack">${managed() ? panel("The rescue network", "A shared picture of supply, demand, and people.", map()) : panel("Your next handoffs", "Every update is recorded in the delivery timeline.", trips.slice(0, 3).map(tripCard).join("") || empty("No deliveries assigned yet. Your coordinator will confirm a plan."))}${panel("Latest network updates", "Persisted notifications relevant to your role.", recentNotifications())}</div><div class="stack">${panel("Your coordination copilot", state.session.intake === "live" ? "Gemini configured - fallback ready" : "Local contextual rules - no key", `<div class="copilot-copy"><span class="assistant-symbol" aria-hidden="true">✳</span><p>${managed() ? `<strong>${atRisk.length} approved offers</strong> have remaining food and close within 45 simulation minutes.` : "Your workspace shows only records you own or need for an assigned delivery."}</p><p>Plans respect declared allergens, transport capability, quantities, pickup windows, and donor transit limits.</p>${button("Understand the decisions ↗", "explain", "", true)}</div>`)}${panel("A clear next step", "Useful actions for this session.", `<div class="quick-actions">${managed() ? `${button(`Review ${t.pending} pending records`, "approvals", "", true)}${button("Open rescue planner", "plans", "", true)}${button("Track delivery progress", "deliveries", "", true)}` : `${button("View delivery assignments", "deliveries", "", true)}${button("Read notifications", "notifications", "", true)}`}</div>`)}<div class="impact-note"><span>↗</span><p><strong>Evidence over estimates.</strong><br>Delivered meals are counted only after recipient confirmation. Scheduled meals stay separate.</p></div></div></div>`
   );
 }
 function filters() {
@@ -595,7 +595,7 @@ function settings() {
       "A workspace with clear boundaries.",
       "Local persistence, simulation controls, and provider status.",
     ) +
-    `<div class="settings-grid">${panel("Network & simulation", "The clock can move forward only when no deliveries are active.", `<form id="settings-form" class="settings-form"><label for="setting-network">Network name</label><input id="setting-network" name="networkName" required maxlength="120" value="${esc(s.networkName)}"><label for="setting-city">City name</label><input id="setting-city" name="city" required maxlength="120" value="${esc(s.city)}"><label for="setting-now">Simulation clock (${s.serviceDate})</label><input id="setting-now" name="now" type="time" required min="${time(s.now)}" value="${time(s.now)}"><p class="fine-print">Planning assumptions: geographic straight-line distance at 24 km/h, with 4 minutes each for pickup and handover.</p><button class="button dark" type="submit">Save settings</button><p id="settings-error" class="form-error" role="alert"></p></form>`)}<div class="stack">${panel("AI connection", state.session.intake === "live" ? "Live extraction configured" : "Local parser enabled", `<div class="settings-copy"><p>${state.session.intake === "live" ? "Submitted donor messages are sent to OpenAI for structured extraction. Every draft still requires human review." : "No API key is configured. The working local parser supports labelled fields, quantities, and explicit deadlines."}</p><p>Configure OPENAI_API_KEY in the server’s .env file and restart to enable live AI. Keys are never accepted or displayed in the browser.</p></div>`)}${panel("Demo data controls", "This affects all accounts and all local operational records.", `<div class="settings-copy"><p>Records persist in the local data file across browser refreshes and server restarts. Export a report before resetting anything you want to keep.</p>${button("Export current report", "export", "", true)}${button("Reset the demo network", "reset", "", true)}</div>`)}</div></div>`
+    `<div class="settings-grid">${panel("Network & simulation", "The clock can move forward only when no deliveries are active.", `<form id="settings-form" class="settings-form"><label for="setting-network">Network name</label><input id="setting-network" name="networkName" required maxlength="120" value="${esc(s.networkName)}"><label for="setting-city">City name</label><input id="setting-city" name="city" required maxlength="120" value="${esc(s.city)}"><label for="setting-now">Simulation clock (${s.serviceDate})</label><input id="setting-now" name="now" type="time" required min="${time(s.now)}" value="${time(s.now)}"><p class="fine-print">Planning assumptions: geographic straight-line distance at 24 km/h, with 4 minutes each for pickup and handover.</p><button class="button dark" type="submit">Save settings</button><p id="settings-error" class="form-error" role="alert"></p></form>`)}<div class="stack">${panel("AI connection", state.session.intake === "live" ? "Gemini configured" : "Local contextual engine", `<div class="settings-copy"><p>${state.session.intake === "live" ? "Submitted donor messages are sent to Google Gemini for JSON extraction. Provider failures fall back to clearly labelled local rules. Every draft still requires human review." : "Local contextual rules extract supported facts, detect conflicts, and ask for missing details without an API key."}</p><p>Configure GEMINI_API_KEY and GEMINI_MODEL in the server environment and restart. Public demos also require PUBLIC_AI_ENABLED=true. Keys are never accepted or displayed in the browser.</p></div>`)}${panel("Demo data controls", "This affects all accounts and all local operational records.", `<div class="settings-copy"><p>Records persist in the local data file across browser refreshes and server restarts. Export a report before resetting anything you want to keep.</p>${button("Export current report", "export", "", true)}${button("Reset the demo network", "reset", "", true)}</div>`)}</div></div>`
   );
 }
 function render() {
@@ -672,6 +672,18 @@ function openEditor(title, content) {
 }
 function formEnd(label = "Save record") {
   return `<p id="form-error" class="form-error" role="alert"></p><button class="button dark full" type="submit">${label}</button></form>`;
+}
+function renderIntakeResult(result) {
+  const local = result.mode !== "live";
+  const source = local ? "Local contextual draft" : "Gemini JSON draft";
+  const facts = Object.entries(result.evidence || {})
+    .map(
+      ([field, fact]) =>
+        `<div><dt>${esc(nice(field))}</dt><dd>${esc(JSON.stringify(result.draft[field]))}<small>Source: ${esc(fact.text)}${fact.kind === "derived-from-clock" ? " (derived from the simulation clock)" : ""}</small></dd></div>`,
+    )
+    .join("");
+  $("extract-result").innerHTML =
+    `<div class="intake-review"><strong>${source}</strong><p>${esc(result.fallback?.message || `Requested model: ${result.configuredModel}. Reported model: ${result.actualModel || "not supplied by provider"}.`)}</p><p>${result.completeness.known} of ${result.completeness.total} fields supported. Human review is still required.</p>${result.warnings.length ? `<ul>${result.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}${result.questions.length ? `<ul>${result.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}<details><summary>View the source facts</summary><dl class="intake-evidence">${facts || "<p>No supported facts were found.</p>"}</dl></details><p>Confirm the organisation, location, use-by, and handling requirements before saving.</p></div>`;
 }
 function editEntity(kind, id, draft = {}) {
   const old = id && find(kind, id);
@@ -884,7 +896,7 @@ function editEntity(kind, id, draft = {}) {
   }
   const intake =
     kind === "offers" && !old
-      ? `<details class="intake-details"><summary>✳ Start from a donor message</summary><p>${state.session.intake === "live" ? "Live AI extraction sends this message to OpenAI. Use fictional data." : "Local parser mode. Use labelled fields; missing facts remain blank."}</p><label for="intake-message">Donor message</label><textarea id="intake-message" maxlength="3000" rows="4"></textarea><div class="intake-tools"><button class="text-button" id="fill-sample" type="button">Use sample</button><button class="button secondary" type="button" id="extract-offer">Extract details</button></div><div id="extract-result" role="status"></div></details>`
+      ? `<details class="intake-details"><summary>✳ Start from a donor message</summary><p>${state.session.intake === "live" ? "Gemini JSON extraction sends this message to Google. Local fallback is available if the request fails. Use fictional data." : "Local contextual mode. Explicit facts and the simulation clock support extraction; conflicting or missing facts require clarification."}</p><label for="intake-message">Donor message</label><textarea id="intake-message" maxlength="3000" rows="4"></textarea><div class="intake-tools"><button class="text-button" id="fill-sample" type="button">Use sample</button><button class="button secondary" type="button" id="extract-offer">Extract details</button></div><div id="extract-result" role="status"></div></details>`
       : "";
   openEditor(
     `${old ? "Edit" : "Add"} ${kind === "offers" ? "food offer" : kind === "requests" ? "recipient request" : kind.slice(0, -1)}`,
@@ -949,27 +961,34 @@ function editEntity(kind, id, draft = {}) {
     );
   if ($("extract-offer"))
     $("extract-offer").addEventListener("click", async () => {
-      const b = $("extract-offer");
+      const b = $("extract-offer"),
+        output = $("extract-result"),
+        form = $("record-form");
       b.disabled = true;
-      $("extract-result").textContent = "Reading the donor message…";
+      output.setAttribute("aria-busy", "true");
+      output.innerHTML =
+        '<div class="intake-processing"><progress aria-label="Extracting and checking donation facts"></progress><span>Extracting and validating supplied facts...</span></div>';
       try {
         const result = await api("/api/intake", {
           message: $("intake-message").value,
         });
+        if (!b.isConnected || !$("editor").open) return;
+        const confirmation = form?.querySelector('[name="donorConfirmed"]');
+        if (confirmation) confirmation.checked = false;
         for (const [key, value] of Object.entries(result.draft)) {
-          if (value === null || key === "name") continue;
+          if (key === "name") continue;
           const el = $(`field-${key}`);
           if (el)
-            el.value = Array.isArray(value)
+            el.value = value === null ? "" : Array.isArray(value)
               ? value.join(", ") || "none"
               : value;
         }
-        $("extract-result").textContent =
-          `${result.mode === "live" ? "AI" : "Local parser"} draft. ${result.questions.join(" ")} Confirm the organisation, location, use-by, and handling details before saving.`;
+        renderIntakeResult(result);
       } catch (e) {
-        $("extract-result").textContent = e.message;
+        if (b.isConnected) output.textContent = e.message;
       } finally {
         b.disabled = false;
+        output.setAttribute("aria-busy", "false");
       }
     });
 }

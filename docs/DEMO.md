@@ -4,7 +4,7 @@
 
 Run `npm start`, then open http://localhost:3000. Use seeded credentials from the README. For a clean network, an administrator can export records and use Settings → Reset demo, entering their password and `RESET DEMO`. Reset signs every session out.
 
-The demonstration uses fictional records, a fixed simulation clock, and local persistence. Without an API key, the message extractor is visibly labelled **Local parser**. Do not call it a live AI model.
+The demonstration uses fictional records, a fixed simulation clock, and local persistence. Without an API key, the message extractor is visibly labelled **Local contextual rules**. Do not call it a live AI model.
 
 ## 1. Problem and working panels
 

@@ -199,15 +199,30 @@ This is a **greedy heuristic, not a guarantee of global optimality**. An unmatch
 - Historical trip labels and contacts are snapshotted, while delivered quantities remain conserved even if a source profile changes later.
 - Source quantities cannot be reduced below portions already delivered or reserved. Linked history cannot be deleted; use deactivation/cancellation instead.
 
-## Prompt design and no-key mode
+## Gemini and the no-key reasoning engine
 
-The actual system prompt lives in [lib/intake.mjs](lib/intake.mjs). It defines a donation-intake assistant, treats user messages as untrusted data, requires unknown facts to remain `null`, forbids inferred allergens and safety certification, and returns a constrained structured draft. Missing fields generate follow-up questions. AI cannot approve an offer, allocate stock, or perform delivery transitions.
+RescueRoute turns donation messages into **reviewable drafts**, with a visible source for each supported fact. The prompt lives in [lib/intake-contract.mjs](lib/intake-contract.mjs). Unknown or conflicting facts stay blank; neither AI nor local rules can approve food, reserve stock, or dispatch a volunteer.
 
-**The default demo has no API key.** Its interface explicitly says **Local parser**. It recognises explicit meal quantities and collection times and labelled `Donor:`, `Food:`, `Handling:`, and `Allergens:` lines. The quantity, food description, deadline, handling, and allergens can populate the form; the coordinator must still confirm the organisation, donor suitability, location, use-by, and transit requirements. This parser is not presented as an LLM.
+```mermaid
+flowchart TD
+  A[Donation message and simulation context] --> B{Gemini enabled and key configured?}
+  B -->|Yes| C[Google Gemini 2.5 Flash: JSON schema]
+  C --> D{Valid, complete response shape and grounded facts?}
+  D -->|Yes| E[Unapproved Gemini draft with reported model]
+  B -->|No| F[Local contextual rules and typed fact graph]
+  D -->|No / offline / timeout| F
+  F --> G[Unapproved local draft with fallback reason]
+  E --> H[Human review and explicit confirmation]
+  G --> H
+```
 
-Optional live mode: copy `.env.example` to `.env`, set `OPENAI_API_KEY`, choose an available structured-output-capable model with `OPENAI_MODEL`, and restart. Only submitted message text goes to OpenAI. Keys remain server-side. Provider failures are surfaced rather than silently replaced with local output. API usage may incur charges.
+**No key is required.** The local engine recognises supported explicit quantities, labelled fields, known donors, collection times, and relative deadlines against the simulation clock. It builds a small deterministic fact graph with source evidence and clarification questions. It is a bounded rule system, not a general language model. Native progress feedback represents an actual pending request, not simulated token streaming.
 
-The adapter uses the [official structured-output format](https://developers.openai.com/api/docs/guides/structured-outputs). Structured output guarantees shape, not truth. Live provider behaviour has not been verified without credentials; its transport is covered by mocked tests. See [docs/PROMPT_EVALUATION.md](docs/PROMPT_EVALUATION.md).
+For optional live extraction, add `GEMINI_API_KEY` to your ignored `.env`, set `GEMINI_MODEL=gemini-2.5-flash`, and restart. The server sends the submitted message, simulation clock, and extraction instructions to Google; the key stays server-side. API usage may incur charges. Public Render demos require the additional explicit setting `PUBLIC_AI_ENABLED=true` and allow at most 60 provider attempts per hour per process.
+
+**Model availability:** Google's current [Gemini 2.5 Flash model documentation](https://aistudio.google.com/docs/models/gemini-2.5-flash) marks it deprecated, available to existing users until 1 December 2026, then automatically redirected to Gemini 3.5 Flash-Lite. The default remains the requested `gemini-2.5-flash`; the interface reports the actual returned model version. Configure another available Gemini model when needed. Unavailability triggers labelled local fallback.
+
+The adapter uses Google's REST `generateContent`, `responseMimeType: application/json`, and `responseSchema`. Independent validation checks types, allowed fields, and supported source facts. Strict grounding can reject otherwise valid language outside the local vocabulary; the review form remains available. Failures return explicit local fallback, with an 8-second default timeout and 30-second circuit pause. See [AI architecture](docs/AI_ARCHITECTURE.md) and [prompt evaluation](docs/PROMPT_EVALUATION.md). Successful live Gemini extraction remains unverified. A local smoke request with configured credentials returned model-unavailable and correctly used labelled local fallback.
 
 ## Real map and live tracking
 
@@ -215,20 +230,24 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
-**Verification recorded during development: 48 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 67 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
-The only package dependencies are development tools for DOM integration tests:
+The only package dependencies are development tools for DOM integration and accessibility checks:
 
 ```sh
 npm ci
 npm test
 npm run check
+npm run evaluate
+npm run benchmark
 npm audit
 ```
 
 Tests cover allocation constraints; 160 deterministic generated scenarios; conservation and reproducibility; double reservation; concurrent confirmation; stale drafts; ownership; review rules; transport cancellation; ordered handoffs; recipient-only receipt; account permissions; password-session revocation; guarded reset; persistent restart; rollback; request size; authentication; CSRF; origin checks; file exposure; and the interface event flows against the real HTTP server.
 
 The jsdom tests are **DOM integration tests, not visual browser tests**. Native dialog methods are stubbed for that environment. They do not establish layout correctness, native dialog focus behaviour, screen-reader behaviour, or mobile rendering. A browser connection was unavailable during implementation, so those reviews remain outstanding. See [docs/TESTING.md](docs/TESTING.md).
+
+The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks report no violations on four admin views with colour contrast excluded. These results do not establish full WCAG compliance or real-provider accuracy. See the [engineering scorecard](docs/EVALUATION.md) for evidence, targets, and remaining gaps.
 
 ## Architecture
 
@@ -243,7 +262,10 @@ The jsdom tests are **DOM integration tests, not visual browser tests**. Native 
 | `lib/live-network.mjs` | Role-filtered map state, live event streams, temporary GPS fixes, and labelled demo tracking |
 | `lib/allergens.mjs`    | Conservative label equivalences                                                              |
 | `lib/validation.mjs`   | Input limits and scenario contracts                                                          |
-| `lib/intake.mjs`       | System prompt, provider adapter, output cleaning, local parser                               |
+| `lib/intake.mjs`       | Intake orchestration, explicit fallback, circuit breaker, provenance |
+| `lib/intake-contract.mjs` | Extraction prompt and strict six-field contract |
+| `lib/gemini.mjs` | Server-side Gemini REST adapter and bounded requests |
+| `lib/local-intake.mjs` | Deterministic contextual extraction, fact graph, source grounding |
 | `public/`              | Accessible semantic controls, role-aware interface, responsive CSS                           |
 | `test/`                | Unit, domain, HTTP, persistence, and DOM integration tests                                   |
 | `scripts/check.mjs`    | Syntax check across every JavaScript module                                                  |
@@ -253,7 +275,7 @@ The jsdom tests are **DOM integration tests, not visual browser tests**. Native 
 - HttpOnly, SameSite=Strict cookies; eight-hour in-memory sessions. Sessions reset on server restart. Password changes, account deactivation, and demo reset revoke relevant access; queued writes recheck account and demo generation.
 - Scrypt password hashing with independent random salts; account fields are whitelisted.
 - CSRF tokens for authenticated mutations, same-origin checks, local-host restrictions, strict CSP, escaped UI text, and static-file allowlists.
-- Login throttling; intake cooldown, one provider request at a time, 3,000-character input limit, and a 20-second provider timeout. JSON bodies are limited to 48 KB.
+- Login throttling; intake cooldown, one provider request at a time, 3,000-character input limit, and an 8-second default provider timeout. JSON bodies are limited to 48 KB.
 - Maximum 30 records per operational category, 60 accounts, 200 plan versions, 1,500 audit entries, and 250 stored notifications. Older notifications/audit entries are bounded; exported state includes the latest 200 audit entries and 50 relevant notifications.
 - No runtime package installation or bundling requirement. Leaflet 1.9.4 is vendored locally; visible basemap tiles load from OpenStreetMap. Opt-in GPS keeps only the latest fix in memory, with no tracking history. Server-sent events replace background polling. The bounded planner is intended for small coordinator workloads rather than global route optimisation.
 - CSV exports quote cells and neutralise leading spreadsheet formula characters. JSON exports omit password hashes and API credentials, but include participant contacts and should be handled appropriately.

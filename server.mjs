@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { Database, seedDatabase } from "./lib/database.mjs";
 import { Sessions, publicUser, verifyPassword } from "./lib/auth.mjs";
 import * as ops from "./lib/operations.mjs";
-import { extractOffer } from "./lib/intake.mjs";
+import { createIntakeService } from "./lib/intake.mjs";
 import { InputError } from "./lib/validation.mjs";
 import { LiveNetwork } from "./lib/live-network.mjs";
 import { deploymentConfig, allowedHost } from "./lib/deployment.mjs";
@@ -64,8 +64,10 @@ async function body(req) {
   return result;
 }
 export function createApp({
-  aiKey = process.env.OPENAI_API_KEY,
-  aiModel = process.env.OPENAI_MODEL,
+  aiKey = process.env.GEMINI_API_KEY,
+  aiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  aiTimeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 8000),
+  publicAiEnabled = process.env.PUBLIC_AI_ENABLED === "true",
   fetcher = fetch,
   database = new Database(),
   publicDemo = false,
@@ -82,6 +84,16 @@ export function createApp({
     isolated: publicDemo,
     temporary: publicDemo,
   };
+  const aiEnabled = !!aiKey && (!publicDemo || publicAiEnabled);
+  const intakeService = createIntakeService({
+    key: aiEnabled ? aiKey : "",
+    model: aiModel,
+    fetcher,
+    timeoutMs: aiTimeoutMs,
+    maxRequestsPerHour: publicDemo ? 60 : Infinity,
+    localOnlyReason:
+      publicDemo && !publicAiEnabled ? "disabled_public" : undefined,
+  });
   const loginAttempts = new Map();
   const server = createServer(async (req, res) => {
     if (config.publicDemo)
@@ -202,7 +214,8 @@ export function createApp({
         return json(200, {
           user: publicUser(user),
           csrf: s.csrf,
-          intake: !publicDemo && aiKey ? "live" : "local",
+          intake: aiEnabled ? "live" : "local",
+          ai: { provider: "gemini", configured: aiEnabled, model: aiModel },
           deployment,
         });
       }
@@ -238,7 +251,8 @@ export function createApp({
         return json(200, {
           user: publicUser(user),
           csrf: session.csrf,
-          intake: !publicDemo && aiKey ? "live" : "local",
+          intake: aiEnabled ? "live" : "local",
+          ai: { provider: "gemini", configured: aiEnabled, model: aiModel },
           deployment,
         });
       if (req.method === "GET" && path === "/api/events")
@@ -322,10 +336,11 @@ export function createApp({
         try {
           return json(
             200,
-            await extractOffer(data.message, {
-              key: publicDemo ? "" : aiKey,
-              model: aiModel,
-              fetcher,
+            await intakeService.extract(data.message, {
+              now: database.read().settings.now,
+              donors: ops
+                .stateView(database.read(), user)
+                .donors.map((d) => ({ name: d.name })),
             }),
           );
         } finally {

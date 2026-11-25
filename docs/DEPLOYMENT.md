@@ -27,7 +27,7 @@ This is a Node **web service**, not a static site. The API and live event stream
 | Listening address | `0.0.0.0` on Render's `PORT`             |
 | Public origin     | Automatically uses `RENDER_EXTERNAL_URL` |
 | Storage           | Isolated per-browser memory; temporary   |
-| External AI       | Disabled in public-demo mode             |
+| External AI       | Disabled by default; explicit owner opt-in             |
 
 `PUBLIC_ORIGIN` overrides the detected origin for another host or configured custom domain. Use the exact HTTPS origin with no path. Host and mutation-origin checks remain enforced. Public cookies are Secure, HttpOnly, and SameSite=Strict.
 
@@ -68,3 +68,9 @@ Automated deployment tests cover HTTPS configuration, host/origin checks, secure
 - [Blueprint reference](https://render.com/docs/blueprint-spec)
 - [Environment variables](https://render.com/docs/environment-variables)
 - [Port binding](https://render.com/docs/web-services#port-binding)
+
+## Optional Gemini extraction
+
+In Render's environment settings, add `GEMINI_API_KEY` as a secret, set `GEMINI_MODEL=gemini-2.5-flash`, and set `PUBLIC_AI_ENABLED=true` only if you want visitors to use your provider allowance. Never commit a key. The service limits actual provider attempts to 60 per hour per process; restarts reset that counter, so also configure provider-side spending controls. Local extraction remains available after errors or exhaustion. The default timeout is 8 seconds (`GEMINI_TIMEOUT_MS`, bounded to 20 seconds), followed by a 30-second circuit pause after failure.
+
+The requested 2.5 model is deprecated; see [AI architecture](AI_ARCHITECTURE.md) before enabling it. The public no-key demo needs none of these optional settings.
