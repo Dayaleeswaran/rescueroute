@@ -61,13 +61,15 @@ test("local intake supports explicit am/pm, words and simulation-clock-relative 
   assert.equal(parseLocal("Collect by 5:30 pm").deadline, "17:30");
   assert.equal(parseLocal("Collect by 12:30 am").deadline, "00:30");
   assert.equal(parseLocal("Twenty meal boxes.").meals, 20);
+  assert.equal(parseLocal("One hundred and twenty meals.").meals, 120);
+  assert.equal(parseLocal("Twenty-five meals.").meals, 25);
   const relative = localReasoning("Collect within 30 minutes.", { now: 960 });
   assert.equal(relative.draft.deadline, "16:30");
   assert.equal(relative.evidence.deadline.kind, "derived-from-clock");
   assert.equal(parseLocal("Collect tomorrow by 17:30.").deadline, null);
 });
 test("conflicting, negative, fractional, uncertain and instruction-like input fails closed", () => {
-  for (const text of ["-5 meals", "1.5 meals", "10 meals or 15 meals"])
+  for (const text of ["-5 meals", "1.5 meals", "10 meals or 15 meals", "twenty thirty meals", "one one meals", "ten hundred meals"])
     assert.equal(parseLocal(text).meals, null, text);
   for (const text of [
     "Allergens: unknown",
