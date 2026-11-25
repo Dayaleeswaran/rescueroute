@@ -154,6 +154,14 @@ const NAV = [
 function renderShell() {
   const d = state.data,
     u = d.user;
+  if (
+    !NAV.some(
+      (item) =>
+        item[0] === state.view &&
+        (item[3] === "all" || item[3].split(" ").includes(u.role)),
+    )
+  )
+    state.view = "overview";
   $("login-screen").hidden = true;
   $("workspace").hidden = false;
   $("network-name").textContent = d.settings.networkName;

@@ -238,7 +238,7 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
-**Verification recorded during development: 73 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 76 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
 The only package dependencies are development tools for DOM integration and accessibility checks:
 
@@ -249,6 +249,7 @@ npm run check
 npm run evaluate
 npm run benchmark
 npm run load-check
+npm run check:contrast
 npm audit
 ```
 
@@ -256,7 +257,7 @@ Tests cover allocation constraints; 160 deterministic generated scenarios; conse
 
 The jsdom tests are **DOM integration tests, not visual browser tests**. Native dialog methods are stubbed for that environment. They do not establish layout correctness, native dialog focus behaviour, screen-reader behaviour, or mobile rendering. A browser connection was unavailable during implementation, so those reviews remain outstanding. See [docs/TESTING.md](docs/TESTING.md).
 
-The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks report no violations on six admin views with colour contrast excluded. These results do not establish full WCAG compliance or real-provider accuracy. See the [engineering scorecard](docs/EVALUATION.md) for evidence, targets, and remaining gaps.
+The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks report no violations across 50 role/navigation combinations and the admin offer form, with colour contrast excluded. Targeted source-colour checks also pass for all three map-marker labels. These results do not establish full WCAG compliance or real-provider accuracy. See the [engineering scorecard](docs/EVALUATION.md) for evidence, targets, and remaining gaps.
 
 ## Architecture
 
@@ -301,6 +302,8 @@ New plans use geographic coordinates and great-circle distance at an assumed 24 
 Food suitability, declared ingredients, temperatures, deadlines, and vehicle capability are human-provided. The app cannot certify safety, independently verify a cold chain, identify undisclosed allergens, or replace local food-handling procedures. Conservative label matching and transit limits are planning checks, not a food-safety assessment.
 
 The local JSON store is for a single-process demo. It is not a production multi-server database, backup service, or immutable audit ledger. Production use requires unique private credentials, HTTPS, durable database constraints and migrations, tested backup/recovery, real routing, verified food-handling policies, privacy review, and browser/accessibility testing. No payment system, external messaging, traffic-aware routing, or actual dispatch is implemented. Opt-in browser geolocation and labelled demo movement are available, with the limitations in docs/LIVE_MAP.md.
+
+The [submission readiness report](docs/READINESS.md) maps the owner-supplied expectations to working features and records the remaining provider, hosting, browser, and user-validation gaps.
 
 ## Challenge submission
 

@@ -74,3 +74,15 @@ Automated deployment tests cover HTTPS configuration, host/origin checks, secure
 In Render's environment settings, add `GEMINI_API_KEY` as a secret, set `GEMINI_MODEL=gemini-3.8-flash`, and set `PUBLIC_AI_ENABLED=true` only if you want visitors to use your provider allowance. Never commit a key. The service limits actual provider attempts to 60 per hour per process; restarts reset that counter, so also configure provider-side spending controls. Local extraction remains available after errors or exhaustion. The default timeout is 8 seconds (`GEMINI_TIMEOUT_MS`, bounded to 20 seconds), followed by a 30-second circuit pause after failure.
 
 The default model is now Gemini 3.8 Flash; see [AI architecture](AI_ARCHITECTURE.md) before enabling it. The public no-key demo needs none of these optional settings.
+
+## Verify the actual public URL
+
+Render assigns a public HTTPS address to the web service. Copy that address from its service overview. Values such as `74.220.52.0/24` are IP ranges, not a service URL, and cannot identify the deployed app.
+
+After deployment, run this against your disposable public evaluation service:
+
+```sh
+npm run verify:deployment -- https://YOUR-ACTUAL-SERVICE.onrender.com
+```
+
+The verifier requires `public-demo` mode. It creates two temporary demo workspaces, checks assets/CSP, secure cookie attributes, origin rejection, read-only preview, confirmation/reservations and visitor isolation, then resets only its own test workspaces. It does not use a Gemini key or send GPS data. It refuses redirects. Successful local tests of this verifier do not prove an external service has been deployed.

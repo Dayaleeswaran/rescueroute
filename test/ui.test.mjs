@@ -138,18 +138,47 @@ test("key admin views and offer form pass DOM-level WCAG checks (contrast exclud
       `${name}: ${JSON.stringify(result.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target) })))}`,
     );
   };
-  await audit("overview");
-  h.click('[data-nav="network"]');
-  await audit("network");
-  h.click('[data-nav="settings"]');
-  await audit("settings");
-  h.click('[data-nav="guide"]');
-  await audit("guided rescue");
-  h.click('[data-nav="plans"]');
-  await audit("planner comparison form");
+  const views = [...h.w.document.querySelectorAll("[data-nav]")].map(
+    (el) => el.dataset.nav,
+  );
+  for (const view of views) {
+    h.click(`[data-nav="${view}"]`);
+    await audit(view);
+  }
   h.click('[data-nav="offers"]');
   h.click('[data-action="new"][data-kind="offers"]');
   await audit("offer form");
+});
+
+test("role changes leave administrator-only views and participant portals pass scoped semantic checks", async (t) => {
+  const h = await harness(t);
+  await h.signIn("admin");
+  h.click('[data-nav="users"]');
+  await h.signOut();
+  for (const role of ["donor", "recipient", "volunteer", "coordinator"]) {
+    await h.signIn(role);
+    assert.notEqual(h.q("#breadcrumb").textContent, "User accounts");
+    h.w.eval(axe.source);
+    const views = [...h.w.document.querySelectorAll("[data-nav]")].map(
+      (el) => el.dataset.nav,
+    );
+    for (const view of views) {
+      h.click(`[data-nav="${view}"]`);
+      const result = await h.w.axe.run(h.w.document, {
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+        },
+        rules: { "color-contrast": { enabled: false } },
+      });
+      assert.equal(
+        result.violations.length,
+        0,
+        `${role}/${view}: ${JSON.stringify(result.violations.map((v) => v.id))}`,
+      );
+    }
+    await h.signOut();
+  }
 });
 
 test("guided rescue links to the real workflow and preview compares without changing availability", async (t) => {

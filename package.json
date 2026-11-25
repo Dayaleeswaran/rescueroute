@@ -11,7 +11,9 @@
     "evaluate": "node scripts/evaluate-intake.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "load-check": "node scripts/load-check.mjs",
-    "evaluate:live": "node --env-file-if-exists=.env scripts/evaluate-live.mjs"
+    "evaluate:live": "node --env-file-if-exists=.env scripts/evaluate-live.mjs",
+    "verify:deployment": "node scripts/verify-deployment.mjs",
+    "check:contrast": "node scripts/audit-palette.mjs"
   },
   "engines": {
     "node": ">=22.13"

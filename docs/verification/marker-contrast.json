@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "role": "donor",
+      "foreground": "white",
+      "background": "#8d5125",
+      "ratio": 6.29,
+      "meetsNormalTextAA": true
+    },
+    {
+      "role": "recipient",
+      "foreground": "white",
+      "background": "#416d53",
+      "ratio": 5.94,
+      "meetsNormalTextAA": true
+    },
+    {
+      "role": "volunteer",
+      "foreground": "white",
+      "background": "#3b7699",
+      "ratio": 4.96,
+      "meetsNormalTextAA": true
+    }
+  ],
+  "scope": "Three opaque CSS map-marker foreground/background pairs using WCAG relative luminance. Not a rendered-page contrast audit or WCAG conformance claim."
+}

@@ -26,9 +26,9 @@ Each row has five checks worth 20 points each: 20 for an implemented check with 
 
 ## Recorded evidence
 
-- `npm test`: 73 passing automated tests, including 160 generated planning scenarios.
+- `npm test`: 76 passing automated tests, including 160 generated planning scenarios.
 - `npm run evaluate`: 24/24 fixed local extraction fixtures. This small regression set is not an unrestricted-language accuracy estimate.
-- Scoped axe-core checks: zero reported violations on six admin views for selected WCAG rules, with colour contrast excluded. jsdom cannot establish full WCAG conformance.
+- Scoped axe-core checks: zero reported violations across 50 role/navigation combinations and the admin offer form for selected WCAG rules, with colour contrast excluded. jsdom cannot establish full WCAG conformance.
 - `npm run check`: syntax checks across application, tests, and scripts.
 - `npm audit`: no known vulnerabilities reported in the installed dependency tree at verification time; this is not a security audit.
 - [Recorded local CPU benchmark](verification/benchmark.json): intake p95 0.032 ms, baseline planner p95 0.095 ms, bounded 30-offer/30-request/30-volunteer stress p95 66.446 ms; 600 portions allocated with a feasible audit. These are machine-specific CPU measurements, not HTTP or cloud response times.

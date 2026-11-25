@@ -9,6 +9,7 @@ npm run check
 npm run evaluate
 npm run benchmark
 npm run load-check
+npm run check:contrast
 npm audit
 ```
 
@@ -45,9 +46,9 @@ The suite also covers geographic distances, role-filtered location visibility, e
 
 ## Gemini, accessibility, and measured performance
 
-The recorded suite has 73 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. Gemini 3.8 generation verification returned HTTP 503/high demand and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
+The recorded suite has 76 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. Gemini 3.8 generation verification returned HTTP 503/high demand and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
 
-axe-core checks WCAG 2 A/AA and 2.1 A/AA rules on the admin overview, network, settings, offer form, guided rescue, and comparison form in jsdom: zero reported violations in those checks. Colour contrast is explicitly excluded because jsdom has no layout renderer. This does not establish WCAG conformance, screen-reader usability, or keyboard behaviour in an actual browser.
+axe-core checks selected WCAG 2 A/AA and 2.1 A/AA rules across 50 role/navigation combinations (16 admin, 14 coordinator, 7 donor, 7 recipient, 6 volunteer) and the admin offer form in jsdom: zero reported violations in those checks. Colour contrast is explicitly excluded because jsdom has no layout renderer. This does not establish WCAG conformance, screen-reader usability, or keyboard behaviour in an actual browser.
 
 [Recorded CPU benchmarks](verification/benchmark.json) contain local percentiles and workload sizes. They measure neither HTTP/cloud latency nor Gemini response time. Re-run `npm run benchmark` on the evaluation machine; do not interpret CPU results as end-to-end speed guarantees.
 
@@ -60,3 +61,11 @@ Domain, HTTP, and DOM checks verify the fresh-seed 80-to-60 comparison, no datab
 `npm run load-check` runs five concurrent workers through 50 authenticated state reads and 50 read-only comparisons on a local ephemeral server, then verifies unchanged revision, reservations, and plan history. [Recorded results](verification/http-load.json) describe that local single-session exercise, not multi-user cloud performance.
 
 `npm run evaluate:live` explicitly makes up to three synthetic-message provider calls when a key is configured. It exits unsuccessfully if any case falls back or differs from its expected fields. Circuit-paused cases are marked unattempted. Normal CI and startup never run this optional paid-provider evaluation.
+
+## Expanded readiness checks
+
+All navigation pages for the five roles are now covered by the scoped semantic accessibility check. A regression verifies that changing from an administrator account to a participant leaves administrator-only views. This complements server-side role enforcement.
+
+`npm run check:contrast` measures the three opaque map-marker foreground/background pairs from the actual stylesheet. The donor label background was darkened; measured ratios are donor 6.29:1, recipient 5.94:1, and volunteer 4.96:1. These targeted source checks do not replace a browser contrast audit. See `verification/marker-contrast.json`.
+
+`npm run verify:deployment -- https://YOUR-SERVICE.onrender.com` exercises the owner's disposable public evaluation service after publication. Its local regression uses real HTTP requests with an emulated HTTPS proxy Host header; that test does not verify TLS termination or external hosting. No public URL has yet been supplied for an external run.
