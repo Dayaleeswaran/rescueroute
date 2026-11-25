@@ -68,4 +68,10 @@ All navigation pages for the five roles are now covered by the scoped semantic a
 
 `npm run check:contrast` measures the three opaque map-marker foreground/background pairs from the actual stylesheet. The donor label background was darkened; measured ratios are donor 6.29:1, recipient 5.94:1, and volunteer 4.96:1. These targeted source checks do not replace a browser contrast audit. See `verification/marker-contrast.json`.
 
-`npm run verify:deployment -- https://YOUR-SERVICE.onrender.com` exercises the owner's disposable public evaluation service after publication. Its local regression uses real HTTP requests with an emulated HTTPS proxy Host header; that test does not verify TLS termination or external hosting. No public URL has yet been supplied for an external run.
+`npm run verify:deployment -- https://YOUR-SERVICE.onrender.com` exercises the owner's disposable public evaluation service after publication. Its local regression uses real HTTP requests with an emulated HTTPS proxy Host header; that test does not verify TLS termination or external hosting. An external run now passes at https://rescueroute-demo.onrender.com; see `verification/public-deployment.json`.
+
+## Recorded public-service exercise
+
+`npm run load:public-demo -- https://rescueroute-demo.onrender.com` performs a fixed 100-request exercise across five independent visitor workspaces, verifies unchanged operational state, and resets its own test workspaces. It refuses non-public-demo mode and makes no Gemini requests. This is a small owner-authorised exercise, not a peak-capacity or endurance test. Do not run it against another person's service.
+
+[Recorded public results](verification/public-http-load.json): 50 state reads (p95 295.42 ms) and 50 disruption previews (p95 106.41 ms), five concurrent sessions, no state changes. Authentication, cold starts, browser rendering, and cleanup are excluded from the percentiles. The separate deployment verifier checks cross-visitor reservation isolation.

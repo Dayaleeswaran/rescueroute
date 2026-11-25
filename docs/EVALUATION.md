@@ -11,7 +11,7 @@ Each row has five checks worth 20 points each: 20 for an implemented check with 
 | Accessibility | 80/100 | 100 | Browser contrast, keyboard, mobile, and screen-reader review |
 | Problem alignment | Not scored | 100 | Confirm eligible food-rescue brief, then validate with coordinators |
 | GenAI excellence | 80/100 | 100 | Repeated semantic evaluation against the actual configured model |
-| Efficiency & speed | 80/100 | 100 | Deployed concurrent-user and provider-latency measurements |
+| Efficiency & speed | 90/100 | 100 | Small public workload verified; provider latency and endurance remain |
 
 ## Checks behind each score
 
@@ -22,7 +22,7 @@ Each row has five checks worth 20 points each: 20 for an implemented check with 
 | Accessibility | Semantic forms and labels 20; status/error feedback 20; textual map alternative 20; focus/reduced-motion/responsive CSS 20; actual browser/assistive-technology verification 0 |
 | Problem alignment | Food-rescue workflows and constraints are implemented, but no eligible official food-rescue brief was supplied. The urban-air brief shared during development does not match this project. An alignment score is withheld pending the correct brief. |
 | GenAI excellence | Structured Gemini contract 20; instruction/data boundaries 20; independent source grounding 20; fallback/provenance/context 20; real-provider semantic results 0 |
-| Efficiency & speed | Measured local extraction 20; bounded planner stress measurement 20; timeout/circuit/allowance controls 20; bounded storage/SSE/no runtime dependencies 20; deployed load/provider measurements 0 |
+| Efficiency & speed | Measured local extraction 20; bounded planner stress measurement 20; timeout/circuit/allowance controls 20; bounded storage/SSE/no runtime dependencies 20; small public multi-session measurement 10; provider latency/endurance remain incomplete |
 
 ## Recorded evidence
 
@@ -33,7 +33,7 @@ Each row has five checks worth 20 points each: 20 for an implemented check with 
 - `npm audit`: no known vulnerabilities reported in the installed dependency tree at verification time; this is not a security audit.
 - [Recorded local CPU benchmark](verification/benchmark.json): intake p95 0.032 ms, baseline planner p95 0.095 ms, bounded 30-offer/30-request/30-volunteer stress p95 66.446 ms; 600 portions allocated with a feasible audit. These are machine-specific CPU measurements, not HTTP or cloud response times.
 
-See [testing limits](TESTING.md), [prompt evaluation](PROMPT_EVALUATION.md), and [AI architecture](AI_ARCHITECTURE.md). Hosted CI results must be checked independently; merely committing a workflow does not prove a successful run. Gemini 3.8 generation verification returned HTTP 503/high demand with correctly labelled local fallback. No successful live Gemini extraction, coordinator pilot, browser audit, or cloud load test has been recorded. Reporting 100/100 before those checks would conceal material gaps.
+See [testing limits](TESTING.md), [prompt evaluation](PROMPT_EVALUATION.md), and [AI architecture](AI_ARCHITECTURE.md). Hosted CI results must be checked independently; merely committing a workflow does not prove a successful run. Gemini 3.8 generation verification returned HTTP 503/high demand with correctly labelled local fallback. No successful live Gemini extraction, coordinator pilot, browser audit, or peak-capacity test has been recorded. Reporting 100/100 before those checks would conceal material gaps.
 
 ## Medium-impact security controls
 
@@ -41,8 +41,14 @@ The implementation includes salted password hashes, role/ownership enforcement, 
 
 ## Additional recorded evidence
 
-The guide and read-only disruption preview now have domain, HTTP, DOM, and scoped axe coverage. The local HTTP exercise completed 100 requests with five concurrent workers and unchanged network state; see `verification/http-load.json`. This does not close the deployed multi-user load-test gap.
+The guide and read-only disruption preview now have domain, HTTP, DOM, and scoped axe coverage. The local HTTP exercise completed 100 requests with five concurrent workers and unchanged network state; see `verification/http-load.json`. The newer public exercise below supplements these local results.
 
 Gemini 3.8 Flash is configured with owner approval. Model discovery succeeded; generation returned 503/high demand. Successful live semantic evaluation remains outstanding. See `verification/gemini-status.json`. A status check or correct fallback does not earn the missing live-quality points.
 
 Use [the pilot checklist](PILOT_CHECKLIST.md) to collect real usability evidence. No coordinator feedback, official score, or rank is claimed.
+
+## Public verification now recorded
+
+The owner-supplied public URL, https://rescueroute-demo.onrender.com, passed actual health, assets/CSP, secure-cookie, origin, reservation, workspace-isolation, and test-cleanup checks. The public workload exercise completed 100 HTTPS requests across five independent sessions without changing operational state. Recorded p95 values were 295.42 ms for state reads and 106.41 ms for previews, in one warm-service run. See `verification/public-deployment.json` and `verification/public-http-load.json`.
+
+These results close the basic public availability and small multi-session measurement gaps. They do not establish peak capacity, production reliability, live Gemini quality, device accessibility, or official competition scores. The efficiency checklist now awards 10 of its final 20 points for the small public exercise; its remaining evidence gap is provider latency and endurance. These scores remain an internal checklist rather than a competition forecast.

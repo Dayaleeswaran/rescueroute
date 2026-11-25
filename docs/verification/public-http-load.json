@@ -1,0 +1,23 @@
+{
+  "origin": "https://rescueroute-demo.onrender.com",
+  "results": [
+    {
+      "route": "/api/state",
+      "requests": 50,
+      "independentVisitorSessions": 5,
+      "p50Ms": 92.09,
+      "p95Ms": 295.42,
+      "totalMs": 1347.52
+    },
+    {
+      "route": "/api/plans/preview",
+      "requests": 50,
+      "independentVisitorSessions": 5,
+      "p50Ms": 89.86,
+      "p95Ms": 106.41,
+      "totalMs": 952.42
+    }
+  ],
+  "stateUnchanged": true,
+  "scope": "100 HTTPS requests across five independent visitor workspaces on the owner's public demo. Authentication, startup and cleanup are excluded from latency percentiles. One small warm-service run, not peak capacity or a global latency guarantee. No Gemini, real GPS, browser, or screen-reader measurement."
+}

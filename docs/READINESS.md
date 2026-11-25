@@ -15,13 +15,14 @@ This document maps the four general expectations supplied by the owner to workin
 - Scoped axe checks pass across 50 role/navigation combinations and an offer form; colour contrast is excluded from jsdom checks.
 - Targeted map-marker text colour ratios pass 4.5:1, using source CSS values only.
 - Local HTTP exercise: 100 requests with five concurrent workers and unchanged operational state.
-- Deployment verifier passes local tests against the real public-demo server, including secure-cookie attributes and visitor isolation.
+- Public deployment verified at https://rescueroute-demo.onrender.com: health, assets/CSP, secure cookies, origin rejection, disruption preview, reservations, visitor isolation, and cleanup passed. See `verification/public-deployment.json`.
+- Public HTTPS workload: 100 requests across five independent visitor sessions passed; p95 state reads 295.42 ms and previews 106.41 ms in one warm-service run. See `verification/public-http-load.json`.
 - The prior published commit's Windows and Linux CI checks passed. Inspect the latest run before claiming the latest commit passed.
 
 ## Still incomplete
 
 - **Live Gemini extraction:** 3.8 Flash is configured; the latest evaluation again used local fallback after provider unavailability. Zero live passes are recorded. Provider outages cannot be fixed by changing a test result.
-- **Public deployment:** no service URL or Render account connection is available. The Render integration is disabled by the workspace administrator. The supplied IP ranges do not identify a public service. Use the prepared Blueprint and supply the assigned HTTPS URL for verification.
+- **Deployment limits:** the public URL and basic isolation/workflow checks are verified. Long-running availability, peak capacity, cold starts, real devices, and production operations are outside those checks.
 - **Rendered usability/accessibility:** no browser is connected. Mobile layout, native dialog/keyboard behaviour, rendered contrast, and assistive-technology checks remain unverified.
 - **Real user validation:** no food-rescue coordinator pilot has been recorded. Use `PILOT_CHECKLIST.md`.
 - **Challenge eligibility:** these four expectations are general. If the event restricts submissions to specified verticals, confirm food rescue is allowed before using a submission attempt.

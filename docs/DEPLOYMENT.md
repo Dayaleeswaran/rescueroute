@@ -2,6 +2,8 @@
 
 RescueRoute includes a Render Blueprint for a **public evaluation demo**. Each browser receives a private, temporary workspace, keeping published demo credentials separate from other visitors' records and GPS fixes.
 
+**Verified public demo:** https://rescueroute-demo.onrender.com. The recorded HTTP verification passed; see [the results](verification/public-deployment.json).
+
 ## Deploy
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Dayaleeswaran/rescueroute)

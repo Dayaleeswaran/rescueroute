@@ -2,6 +2,54 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { DEMO_PASSWORD } from "../lib/auth.mjs";
 
+export async function createDemoClient(origin, fetcher = fetch) {
+  const target = new URL(origin);
+  assert(target.protocol === "https:", "A public HTTPS origin is required.");
+  const request = (path, options = {}) =>
+    fetcher(target.origin + path, {
+      ...options,
+      redirect: "error",
+      signal: AbortSignal.timeout(12000),
+    });
+  const jar = new Map();
+  let csrf;
+  const call = async (path, payload, originOverride) => {
+    const response = await request(path, {
+      ...(payload === undefined
+        ? {}
+        : { method: "POST", body: JSON.stringify(payload) }),
+      headers: {
+        Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; "),
+        "Content-Type": "application/json",
+        Origin: originOverride || target.origin,
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+      },
+    });
+    for (const cookie of response.headers.getSetCookie()) {
+      const [pair] = cookie.split(";"),
+        index = pair.indexOf("=");
+      jar.set(pair.slice(0, index), pair.slice(index + 1));
+      assert.match(cookie, /;\s*Secure/i, "Public cookie must be Secure.");
+      assert.match(cookie, /;\s*HttpOnly/i, "Public cookie must be HttpOnly.");
+      assert.match(
+        cookie,
+        /;\s*SameSite=Strict/i,
+        "Public cookie must use SameSite=Strict.",
+      );
+    }
+    const data = await response.json();
+    return { status: response.status, data };
+  };
+  const login = await call("/api/login", {
+    email: "admin@demo.rescueroute.test",
+    password: DEMO_PASSWORD,
+  });
+  assert.equal(login.status, 200, "Public demo sign-in failed.");
+  csrf = login.data.csrf;
+  assert.equal(login.data.deployment.isolated, true);
+  return call;
+}
+
 // Only run against an owner-authorised, disposable public-demo deployment.
 export async function verifyDeployment(origin, fetcher = fetch) {
   const target = new URL(origin);
@@ -42,51 +90,8 @@ export async function verifyDeployment(origin, fetcher = fetch) {
     );
     await response.arrayBuffer();
   }
-  const client = async () => {
-    const jar = new Map();
-    let csrf;
-    const call = async (path, payload, originOverride) => {
-      const response = await request(path, {
-        ...(payload === undefined
-          ? {}
-          : { method: "POST", body: JSON.stringify(payload) }),
-        headers: {
-          Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; "),
-          "Content-Type": "application/json",
-          Origin: originOverride || target.origin,
-          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
-        },
-      });
-      for (const cookie of response.headers.getSetCookie()) {
-        const [pair] = cookie.split(";"),
-          index = pair.indexOf("=");
-        jar.set(pair.slice(0, index), pair.slice(index + 1));
-        assert.match(cookie, /;\s*Secure/i, "Public cookie must be Secure.");
-        assert.match(
-          cookie,
-          /;\s*HttpOnly/i,
-          "Public cookie must be HttpOnly.",
-        );
-        assert.match(
-          cookie,
-          /;\s*SameSite=Strict/i,
-          "Public cookie must use SameSite=Strict.",
-        );
-      }
-      const data = await response.json();
-      return { status: response.status, data };
-    };
-    const login = await call("/api/login", {
-      email: "admin@demo.rescueroute.test",
-      password: DEMO_PASSWORD,
-    });
-    assert.equal(login.status, 200, "Public demo sign-in failed.");
-    csrf = login.data.csrf;
-    assert.equal(login.data.deployment.isolated, true);
-    return call;
-  };
-  const first = await client(),
-    second = await client();
+  const first = await createDemoClient(target.origin, fetcher),
+    second = await createDemoClient(target.origin, fetcher);
   const before = (await first("/api/state")).data;
   const input = { revision: before.revision, volunteerId: "v2" };
   assert.equal(

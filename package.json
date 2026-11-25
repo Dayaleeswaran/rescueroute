@@ -13,7 +13,8 @@
     "load-check": "node scripts/load-check.mjs",
     "evaluate:live": "node --env-file-if-exists=.env scripts/evaluate-live.mjs",
     "verify:deployment": "node scripts/verify-deployment.mjs",
-    "check:contrast": "node scripts/audit-palette.mjs"
+    "check:contrast": "node scripts/audit-palette.mjs",
+    "load:public-demo": "node scripts/load-public-demo.mjs"
   },
   "engines": {
     "node": ">=22.13"

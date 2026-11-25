@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://rescueroute-demo.onrender.com"><strong>Open public demo</strong></a> ?
   <a href="#why-this-problem-matters"><strong>The problem</strong></a> ·
   <a href="#start-the-demo"><strong>Get started</strong></a> ·
   <a href="#working-panels">Explore the features</a> ·
@@ -20,6 +21,8 @@
 **RescueRoute connects good food with the people who can use it.** It brings donors, community recipients, volunteers, and coordinators into one workspace—from a surplus-food message to a checked delivery plan and a recorded recipient receipt.
 
 **Context matters.** Collection deadlines, declared allergens, chilled transport, vehicle capacity, and cancellations all shape the next decision. Offers, reservations, and received meals stay separate, so the dashboard shows what has actually happened in the demo.
+
+**Public demo:** [rescueroute-demo.onrender.com](https://rescueroute-demo.onrender.com). Each visitor receives an isolated, temporary workspace; use the published demo accounts below. [Verified deployment checks](docs/verification/public-deployment.json) cover cookies, origin checks, reservations, and visitor isolation.
 
 **Vertical:** sustainability and community logistics. **Primary persona:** a coordinator connecting food donors, community recipients, and volunteer drivers.
 

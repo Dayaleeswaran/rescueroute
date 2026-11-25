@@ -1,0 +1,17 @@
+{
+  "checkedOn": "2026-11-25",
+  "origin": "https://rescueroute-demo.onrender.com",
+  "mode": "public-demo",
+  "checksPassed": true,
+  "checks": [
+    "health",
+    "static assets and CSP",
+    "secure cookies",
+    "origin rejection",
+    "read-only disruption preview",
+    "reservation confirmation",
+    "visitor isolation",
+    "workspace cleanup"
+  ],
+  "scope": "Owner-authorised disposable public demo; two synthetic workspaces. No GPS device, visual browser, screen reader, or production load verification."
+}
