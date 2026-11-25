@@ -10,10 +10,12 @@ import { InputError } from "./lib/validation.mjs";
 import { LiveNetwork } from "./lib/live-network.mjs";
 import { deploymentConfig, allowedHost } from "./lib/deployment.mjs";
 import { DemoWorkspaces } from "./lib/demo-workspaces.mjs";
+import { previewPlan } from "./lib/plan-preview.mjs";
 
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
   ["/app.js", ["public/app.js", "text/javascript"]],
+  ["/rescue-guide.js", ["public/rescue-guide.js", "text/javascript"]],
   ["/styles.css", ["public/styles.css", "text/css"]],
   ["/platform.css", ["public/platform.css", "text/css"]],
   ["/icon.svg", ["public/icon.svg", "image/svg+xml"]],
@@ -65,7 +67,7 @@ async function body(req) {
 }
 export function createApp({
   aiKey = process.env.GEMINI_API_KEY,
-  aiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  aiModel = process.env.GEMINI_MODEL || "gemini-3.8-flash",
   aiTimeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 8000),
   publicAiEnabled = process.env.PUBLIC_AI_ENABLED === "true",
   fetcher = fetch,
@@ -347,6 +349,8 @@ export function createApp({
           intake.busy = false;
         }
       }
+      if (path === "/api/plans/preview")
+        return json(200, previewPlan(database.read(), user.id, data));
       if (path === "/api/reset") {
         ops.admin(user);
         if (

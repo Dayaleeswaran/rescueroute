@@ -199,6 +199,14 @@ This is a **greedy heuristic, not a guarantee of global optimality**. An unmatch
 - Historical trip labels and contacts are snapshotted, while delivered quantities remain conserved even if a source profile changes later.
 - Source quantities cannot be reduced below portions already delivered or reserved. Linked history cannot be deleted; use deactivation/cancellation instead.
 
+## A guided rescue, with decisions you can inspect
+
+Open **Start a rescue** for a role-specific checklist: capture details, review declarations, compare and build a plan, follow the handoff, and record recipient receipt. Seeded records may already satisfy some checks; evidence indicators describe workspace records, not real-world outcomes.
+
+In **Rescue planner**, choose Alex under **What if a volunteer becomes unavailable?** and compare. On a fresh seed, allocation changes from **80 to 60 portions**, with **20 chilled portions** left and an explicit transport explanation. This is a read-only preview of future unreserved work: existing trips, stock, availability, history, and revisions stay unchanged. A network change marks the comparison stale. Re-run it before making a decision, then use the normal reviewed planning workflow to commit changes.
+
+The preview checks role access, current revision, reservations, and both plans' independent feasibility audits. It does not promise a global optimum or cancel any existing delivery. See the [guided demonstration](docs/DEMO.md) and [coordinator validation protocol](docs/PILOT_CHECKLIST.md).
+
 ## Gemini and the no-key reasoning engine
 
 RescueRoute turns donation messages into **reviewable drafts**, with a visible source for each supported fact. The prompt lives in [lib/intake-contract.mjs](lib/intake-contract.mjs). Unknown or conflicting facts stay blank; neither AI nor local rules can approve food, reserve stock, or dispatch a volunteer.
@@ -206,7 +214,7 @@ RescueRoute turns donation messages into **reviewable drafts**, with a visible s
 ```mermaid
 flowchart TD
   A[Donation message and simulation context] --> B{Gemini enabled and key configured?}
-  B -->|Yes| C[Google Gemini 2.5 Flash: JSON schema]
+  B -->|Yes| C[Google Gemini 3.8 Flash: JSON schema]
   C --> D{Valid, complete response shape and grounded facts?}
   D -->|Yes| E[Unapproved Gemini draft with reported model]
   B -->|No| F[Local contextual rules and typed fact graph]
@@ -218,11 +226,11 @@ flowchart TD
 
 **No key is required.** The local engine recognises supported explicit quantities, labelled fields, known donors, collection times, and relative deadlines against the simulation clock. It builds a small deterministic fact graph with source evidence and clarification questions. It is a bounded rule system, not a general language model. Native progress feedback represents an actual pending request, not simulated token streaming.
 
-For optional live extraction, add `GEMINI_API_KEY` to your ignored `.env`, set `GEMINI_MODEL=gemini-2.5-flash`, and restart. The server sends the submitted message, simulation clock, and extraction instructions to Google; the key stays server-side. API usage may incur charges. Public Render demos require the additional explicit setting `PUBLIC_AI_ENABLED=true` and allow at most 60 provider attempts per hour per process.
+For optional live extraction, add `GEMINI_API_KEY` to your ignored `.env`, set `GEMINI_MODEL=gemini-3.8-flash`, and restart. The server sends the submitted message, simulation clock, and extraction instructions to Google; the key stays server-side. API usage may incur charges. Public Render demos require the additional explicit setting `PUBLIC_AI_ENABLED=true` and allow at most 60 provider attempts per hour per process.
 
-**Model availability:** Google's current [Gemini 2.5 Flash model documentation](https://aistudio.google.com/docs/models/gemini-2.5-flash) marks it deprecated, available to existing users until 1 December 2026, then automatically redirected to Gemini 3.5 Flash-Lite. The default remains the requested `gemini-2.5-flash`; the interface reports the actual returned model version. Configure another available Gemini model when needed. Unavailability triggers labelled local fallback.
+**Model availability:** the default is now `gemini-3.8-flash`, following owner approval after Google rejected 2.5 Flash for this key as unavailable to new users. [Gemini 3.8 Flash documentation](https://aistudio.google.com/docs/models/gemini-3.8-flash). Model discovery succeeded, but generation verification returned HTTP 503 (high demand). Successful live extraction remains unverified; labelled local fallback preserved the synthetic donation fields. The app displays the returned model version when generation succeeds.
 
-The adapter uses Google's REST `generateContent`, `responseMimeType: application/json`, and `responseSchema`. Independent validation checks types, allowed fields, and supported source facts. Strict grounding can reject otherwise valid language outside the local vocabulary; the review form remains available. Failures return explicit local fallback, with an 8-second default timeout and 30-second circuit pause. See [AI architecture](docs/AI_ARCHITECTURE.md) and [prompt evaluation](docs/PROMPT_EVALUATION.md). Successful live Gemini extraction remains unverified. A local smoke request with configured credentials returned model-unavailable and correctly used labelled local fallback.
+The adapter uses Google's REST `generateContent`, `responseMimeType: application/json`, and `responseSchema`. Independent validation checks types, allowed fields, and supported source facts. Strict grounding can reject otherwise valid language outside the local vocabulary; the review form remains available. Failures return explicit local fallback, with an 8-second default timeout and 30-second circuit pause. See [AI architecture](docs/AI_ARCHITECTURE.md) and [prompt evaluation](docs/PROMPT_EVALUATION.md). See [the recorded provider status](docs/verification/gemini-status.json).
 
 ## Real map and live tracking
 
@@ -230,7 +238,7 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
-**Verification recorded during development: 67 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 73 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
 The only package dependencies are development tools for DOM integration and accessibility checks:
 
@@ -240,6 +248,7 @@ npm test
 npm run check
 npm run evaluate
 npm run benchmark
+npm run load-check
 npm audit
 ```
 
@@ -247,7 +256,7 @@ Tests cover allocation constraints; 160 deterministic generated scenarios; conse
 
 The jsdom tests are **DOM integration tests, not visual browser tests**. Native dialog methods are stubbed for that environment. They do not establish layout correctness, native dialog focus behaviour, screen-reader behaviour, or mobile rendering. A browser connection was unavailable during implementation, so those reviews remain outstanding. See [docs/TESTING.md](docs/TESTING.md).
 
-The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks report no violations on four admin views with colour contrast excluded. These results do not establish full WCAG compliance or real-provider accuracy. See the [engineering scorecard](docs/EVALUATION.md) for evidence, targets, and remaining gaps.
+The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks report no violations on six admin views with colour contrast excluded. These results do not establish full WCAG compliance or real-provider accuracy. See the [engineering scorecard](docs/EVALUATION.md) for evidence, targets, and remaining gaps.
 
 ## Architecture
 
@@ -257,6 +266,8 @@ The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks r
 | `lib/auth.mjs`         | Salted scrypt password hashes, constant-time comparison, expiring sessions                   |
 | `lib/database.mjs`     | Fictional seed data, atomic file replacement, serial transaction queue                       |
 | `lib/operations.mjs`   | Roles, ownership, CRUD, approvals, reservations, lifecycle, audit, filtered views            |
+| `lib/plan-preview.mjs` | Read-only, revision-bound volunteer disruption comparison |
+| `public/rescue-guide.js` | Role-specific guided workflow and comparison presentation |
 | `lib/planner.mjs`      | Pure allocation function and separate feasibility audit                                      |
 | `lib/geo.mjs`          | Geographic coordinates, illustrative placements, and great-circle distance                   |
 | `lib/live-network.mjs` | Role-filtered map state, live event streams, temporary GPS fixes, and labelled demo tracking |

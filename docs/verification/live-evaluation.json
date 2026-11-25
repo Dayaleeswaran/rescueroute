@@ -1,0 +1,49 @@
+{
+  "cases": 3,
+  "livePassed": 0,
+  "results": [
+    {
+      "id": "complete-declaration",
+      "configuredModel": "gemini-3.8-flash",
+      "actualModel": null,
+      "mode": "local",
+      "fallbackReason": "provider_unavailable",
+      "providerAttempted": true,
+      "fieldsMatch": true,
+      "livePass": false,
+      "timings": {
+        "totalMs": 2300.74,
+        "providerMs": 2291.45
+      }
+    },
+    {
+      "id": "undeclared-allergens",
+      "configuredModel": "gemini-3.8-flash",
+      "actualModel": null,
+      "mode": "local",
+      "fallbackReason": "cooling_down",
+      "providerAttempted": false,
+      "fieldsMatch": true,
+      "livePass": false,
+      "timings": {
+        "totalMs": 1.13,
+        "providerMs": 0
+      }
+    },
+    {
+      "id": "relative-deadline",
+      "configuredModel": "gemini-3.8-flash",
+      "actualModel": null,
+      "mode": "local",
+      "fallbackReason": "cooling_down",
+      "providerAttempted": false,
+      "fieldsMatch": true,
+      "livePass": false,
+      "timings": {
+        "totalMs": 0.6,
+        "providerMs": 0
+      }
+    }
+  ],
+  "scope": "Three fixed synthetic messages, one run. Local fallback never counts as a live-model pass. Circuit-paused cases are marked unattempted. Not a general accuracy estimate."
+}

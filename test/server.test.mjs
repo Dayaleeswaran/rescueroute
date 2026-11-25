@@ -37,6 +37,33 @@ async function login(base, account) {
     "Content-Type": "application/json",
   };
 }
+
+test("comparison API enforces coordinator access and CSRF while preserving revision and records", async (t) => {
+  const { base } = await application(t);
+  const headers = await login(base, "admin");
+  const state = () =>
+    fetch(base + "/api/state", { headers }).then((r) => r.json());
+  const before = await state();
+  const input = { revision: before.revision, volunteerId: "v2" };
+  const post = (extraHeaders = headers, body = input) =>
+    fetch(base + "/api/plans/preview", {
+      method: "POST",
+      headers: extraHeaders,
+      body: JSON.stringify(body),
+    });
+  assert.equal((await post({ ...headers, "X-CSRF-Token": "" })).status, 403);
+  const response = await post();
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).difference, -20);
+  const after = await state();
+  // Map response timestamps are request metadata, not persisted network state.
+  delete before.mapData.asOf;
+  delete after.mapData.asOf;
+  assert.deepEqual(after, before);
+  assert.equal((await post(headers, { ...input, revision: 0 })).status, 409);
+  assert.equal((await post(await login(base, "donor"))).status, 403);
+  assert.equal((await fetch(base + "/rescue-guide.js")).status, 200);
+});
 test("HTTP boundaries enforce authentication, CSRF, origins, roles and file allowlists", async (t) => {
   const { base } = await application(t);
   assert.equal((await fetch(base)).status, 200);

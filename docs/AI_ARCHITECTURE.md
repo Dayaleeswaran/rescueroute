@@ -38,17 +38,19 @@ The UI shows source, requested/reported model, completeness, questions, warnings
 
 ```dotenv
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 GEMINI_TIMEOUT_MS=8000
 PUBLIC_AI_ENABLED=false
 ```
 
 Keys are transmitted only in the server-side `x-goog-api-key` header. Google receives the submitted donation message, simulation clock, and extraction instructions. Account passwords, network records, GPS feeds, and the API key are not included in the model prompt.
 
-As checked on 25 November 2026, Google's [Gemini 2.5 Flash documentation](https://aistudio.google.com/docs/models/gemini-2.5-flash) marks it deprecated, available to existing users until 1 December 2026, then redirected to Gemini 3.5 Flash-Lite. RescueRoute preserves the requested default and reports Google's actual `modelVersion`. Choose an available Gemini model through configuration; no code change is needed for the model identifier. Compatibility still requires validation when changing models.
+On 25 November 2026, the owner approved Gemini 3.8 Flash after Google rejected 2.5 Flash for this account as unavailable to new users. The default is `gemini-3.8-flash`; [Google documents the model here](https://aistudio.google.com/docs/models/gemini-3.8-flash). Model discovery succeeded. Generation requests returned HTTP 503 due to high demand, and the application used labelled local fallback. This is provider-reachability and failure-path evidence, not successful live extraction. See `verification/gemini-status.json`.
+
+Gemini 3.x requests use low thinking effort and a bounded output budget for extraction. The 2.5 adapter branch remains supported for owners with existing access. The reported `modelVersion` is displayed on successful extraction.
 
 The REST request follows Google's [generateContent reference](https://aistudio.google.com/api-reference/generate-content). Its structured response contract uses `responseMimeType: application/json` and `responseSchema`; Google's [API discovery schema](https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta) documents these fields. A JSON schema constrains shape, not factual accuracy.
 
 ## Verification boundary
 
-Provider transport and failure paths have mocked tests; 24 fixed fixtures exercise local extraction. A local smoke request with configured credentials returned model-unavailable and exercised actual fallback. Successful live extraction, semantic quality, and provider latency remain unverified. Domain tests independently check reservations, ownership, quantity conservation, ordering, and receipt confirmation. These controls reduce error exposure; they do not prove a zero-error system.
+Provider transport and failure paths have mocked tests; 24 fixed fixtures exercise local extraction. Gemini 3.8 generation verification returned 503 and exercised actual local fallback. Successful live extraction and semantic quality remain unverified. Domain tests independently check reservations, ownership, quantity conservation, ordering, and receipt confirmation. These controls reduce error exposure; they do not prove a zero-error system.

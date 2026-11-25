@@ -71,6 +71,6 @@ Automated deployment tests cover HTTPS configuration, host/origin checks, secure
 
 ## Optional Gemini extraction
 
-In Render's environment settings, add `GEMINI_API_KEY` as a secret, set `GEMINI_MODEL=gemini-2.5-flash`, and set `PUBLIC_AI_ENABLED=true` only if you want visitors to use your provider allowance. Never commit a key. The service limits actual provider attempts to 60 per hour per process; restarts reset that counter, so also configure provider-side spending controls. Local extraction remains available after errors or exhaustion. The default timeout is 8 seconds (`GEMINI_TIMEOUT_MS`, bounded to 20 seconds), followed by a 30-second circuit pause after failure.
+In Render's environment settings, add `GEMINI_API_KEY` as a secret, set `GEMINI_MODEL=gemini-3.8-flash`, and set `PUBLIC_AI_ENABLED=true` only if you want visitors to use your provider allowance. Never commit a key. The service limits actual provider attempts to 60 per hour per process; restarts reset that counter, so also configure provider-side spending controls. Local extraction remains available after errors or exhaustion. The default timeout is 8 seconds (`GEMINI_TIMEOUT_MS`, bounded to 20 seconds), followed by a 30-second circuit pause after failure.
 
-The requested 2.5 model is deprecated; see [AI architecture](AI_ARCHITECTURE.md) before enabling it. The public no-key demo needs none of these optional settings.
+The default model is now Gemini 3.8 Flash; see [AI architecture](AI_ARCHITECTURE.md) before enabling it. The public no-key demo needs none of these optional settings.

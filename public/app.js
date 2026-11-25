@@ -30,6 +30,8 @@ const state = {
   query: "",
   filter: "",
   selectedPlan: null,
+  comparison: null,
+  comparing: false,
   busy: false,
 };
 let toastTimer;
@@ -85,6 +87,8 @@ function showLogin() {
   window.RescueMap?.reset();
   state.session = null;
   state.data = null;
+  state.comparison = null;
+  state.comparing = false;
   $("workspace").hidden = true;
   $("login-screen").hidden = false;
 }
@@ -130,6 +134,7 @@ async function action(
 }
 
 const NAV = [
+  ["guide", "Start a rescue", "?", "all"],
   ["network", "Live network", "◎", "all"],
   ["overview", "Overview", "▦", "all"],
   ["offers", "Food offers", "♧", "admin coordinator donor"],
@@ -322,6 +327,7 @@ function overview() {
       managed() ? button("＋ Add food offer", "new-offer") : "",
     ) +
     `<section class="hero platform-hero"><div class="hero-copy"><span class="hero-label"><span></span> EVERY MEAL HAS SOMEWHERE TO GO</span><h2>Good food.<br>A better destination.</h2><p>${managed() ? "Bring food, people, and possibilities together.<br>Build a delivery plan your network can actually fulfil." : "Your contribution is part of something bigger.<br>Keep your details current and follow each handoff."}</p>${heroAction}<span class="hero-footnote">Donor confirmed · Constraint checked · Human approved</span></div><div class="hero-summary" aria-hidden="true"><div class="hero-orbit">♧</div><span>Small routes.<br>Meaningful change.</span></div></section>` +
+    `<div class="guide-callout"><div><strong>A clear path from offer to receipt.</strong><p>New here? Follow the guided rescue checklist for your role.</p></div>${button("Start a rescue ?", "guide", "", true)}</div>` +
     metrics(
       managed()
         ? [
@@ -505,6 +511,19 @@ function plans() {
       "Build, inspect, and confirm a plan against the current network.",
       controls,
     ) +
+    panel(
+      "What if a volunteer becomes unavailable?",
+      "Compare the impact before changing the network. This preview never cancels committed trips.",
+      `<form id="preview-form" class="preview-controls"><div><label for="preview-volunteer">Volunteer to exclude from future matching</label><select id="preview-volunteer" name="volunteerId" required><option value="">Choose an active volunteer</option>${d.volunteers
+        .filter((v) => v.active)
+        .map(
+          (v) =>
+            `<option value="${esc(v.id)}" ${state.comparison?.volunteer.id === v.id ? "selected" : ""}>${esc(v.name)}${v.chilled ? " ? chilled capable" : ""}</option>`,
+        )
+        .join(
+          "",
+        )}</select></div><button class="button secondary" type="submit" ${state.comparing ? "disabled" : ""}>${state.comparing ? "Comparing?" : "Compare plans"}</button></form><p id="preview-error" role="alert"></p><div id="preview-result" role="status">${window.RescueGuide.comparison(state.comparison, d.revision)}</div>`,
+    ) +
     `<div class="notice">One load per trip. Sequential driver schedules. Chilled transport, declared allergens, donor use-by times, and recipient deadlines are checked. The heuristic does not guarantee a globally optimal plan.</div><div class="planner-grid">${panel("Current plan", "Schedule times use the explicit simulation clock.", content)}${panel("Plan history", `${d.plans.length} persisted versions`, `<div class="plan-history">${d.plans.map((p) => `<button class="history-item ${p.id === selected?.id ? "selected" : ""}" data-action="select-plan" data-id="${p.id}"><strong>${p.metrics.allocated} meals · ${p.metrics.trips} trips</strong><span>${esc(date(p.createdAt))}</span>${status(p.status)}</button>`).join("") || empty("No plans yet.")}</div>`)}</div>`
   );
 }
@@ -602,6 +621,12 @@ function render() {
   if (!state.data) return;
   const pages = {
     overview,
+    guide: () =>
+      heading(
+        "FROM MESSAGE TO RECEIPT",
+        "Your next rescue, step by step.",
+        "A practical checklist for your role in this network.",
+      ) + window.RescueGuide.markup(state.data),
     network,
     approvals,
     plans,
@@ -979,9 +1004,12 @@ function editEntity(kind, id, draft = {}) {
           if (key === "name") continue;
           const el = $(`field-${key}`);
           if (el)
-            el.value = value === null ? "" : Array.isArray(value)
-              ? value.join(", ") || "none"
-              : value;
+            el.value =
+              value === null
+                ? ""
+                : Array.isArray(value)
+                  ? value.join(", ") || "none"
+                  : value;
         }
         renderIntakeResult(result);
       } catch (e) {
@@ -1052,6 +1080,43 @@ function download(name, value, type) {
 $("navigation").addEventListener("click", (e) => {
   const b = e.target.closest("[data-nav]");
   if (b) navigate(b.dataset.nav);
+});
+$("page-content").addEventListener("submit", async (event) => {
+  if (event.target.id !== "preview-form") return;
+  event.preventDefault();
+  if (state.comparing || state.busy) return;
+  const form = event.target,
+    session = state.session;
+  const output = $("preview-result"),
+    error = $("preview-error");
+  const submit = form.querySelector('button[type="submit"]');
+  state.comparing = true;
+  submit.disabled = true;
+  output.setAttribute("aria-busy", "true");
+  error.textContent = "";
+  try {
+    const result = await api("/api/plans/preview", {
+      volunteerId: form.elements.volunteerId.value,
+      revision: state.data.revision,
+    });
+    if (session !== state.session) return;
+    state.comparison = result;
+    if (output.isConnected)
+      output.innerHTML = window.RescueGuide.comparison(
+        result,
+        state.data.revision,
+      );
+  } catch (e) {
+    if (session === state.session && error.isConnected)
+      error.textContent = e.message;
+  } finally {
+    if (session === state.session) {
+      state.comparing = false;
+      if (state.view === "plans" && !form.isConnected) render();
+    }
+    submit.disabled = false;
+    output.setAttribute("aria-busy", "false");
+  }
 });
 $("page-content").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-action]");

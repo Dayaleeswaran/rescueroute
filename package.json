@@ -9,7 +9,9 @@
     "test": "node --test",
     "check": "node scripts/check.mjs",
     "evaluate": "node scripts/evaluate-intake.mjs",
-    "benchmark": "node scripts/benchmark.mjs"
+    "benchmark": "node scripts/benchmark.mjs",
+    "load-check": "node scripts/load-check.mjs",
+    "evaluate:live": "node --env-file-if-exists=.env scripts/evaluate-live.mjs"
   },
   "engines": {
     "node": ">=22.13"

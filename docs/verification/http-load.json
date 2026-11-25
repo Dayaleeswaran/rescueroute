@@ -1,0 +1,24 @@
+{
+  "runtime": "v22.22.2",
+  "platform": "win32",
+  "results": [
+    {
+      "route": "/api/state",
+      "requests": 50,
+      "concurrency": 5,
+      "p50Ms": 6.23,
+      "p95Ms": 15.52,
+      "totalMs": 79.34
+    },
+    {
+      "route": "/api/plans/preview",
+      "requests": 50,
+      "concurrency": 5,
+      "p50Ms": 7.13,
+      "p95Ms": 10.04,
+      "totalMs": 74.01
+    }
+  ],
+  "stateUnchanged": true,
+  "scope": "Local loopback HTTP, one demo session, five concurrent workers. Not a cloud, multi-user, browser, or Gemini latency benchmark."
+}

@@ -10,11 +10,11 @@ The demonstration uses fictional records, a fixed simulation clock, and local pe
 
 “A donation is useful only if someone can collect and deliver it in time. RescueRoute connects donor offers, recipient needs, and volunteer capacity while checking the constraints behind each trip.”
 
-Show the admin overview, profiles, approval queue, user accounts, reports, and audit panel. Explain that donors, recipients, and volunteers have smaller portals with server-enforced ownership.
+Begin with Overview ? Start a rescue. Follow the checklist from donor details to receipt, and show that seeded records are explicitly labelled. Then show profiles, the review queue, reports, and the audit panel. Explain that donors, recipients, and volunteers have smaller portals with server-enforced ownership.
 
 ## 2. Dynamic planning
 
-Open Rescue planner. Build a draft: 80 meals, four trips. Inspect the declared allergen requirements, pickup cutoff, chilled transport, and driver sequence. The draft reserves nothing.
+Open Rescue planner. Before changing anything, select Alex in the volunteer-disruption preview and compare: 80 portions before, 60 after, with 20 chilled portions unallocated. Show that no records or availability changed. Build a draft: 80 meals, four trips. Inspect the declared allergen requirements, pickup cutoff, chilled transport, and driver sequence. The draft reserves nothing.
 
 Make Alex unavailable in Volunteers. Build a new draft. Show 60 meals allocated and 20 chilled meals unallocated. Restore Alex and rebuild to recover all 80 meals.
 

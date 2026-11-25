@@ -1,0 +1,12 @@
+{
+  "checkedOn": "2026-11-25",
+  "requestedModel": "gemini-3.8-flash",
+  "modelDiscovery": "successful",
+  "generationHttpStatus": 503,
+  "providerStatus": "UNAVAILABLE",
+  "providerReason": "High demand; retry later.",
+  "successfulLiveExtraction": false,
+  "applicationFallback": "local-context",
+  "fallbackPreservedSyntheticPortions": 15,
+  "scope": "Observed provider status and controlled synthetic-message fallback. Not a live semantic-quality pass."
+}

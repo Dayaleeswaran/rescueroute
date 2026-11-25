@@ -8,6 +8,7 @@ npm test
 npm run check
 npm run evaluate
 npm run benchmark
+npm run load-check
 npm audit
 ```
 
@@ -44,10 +45,18 @@ The suite also covers geographic distances, role-filtered location visibility, e
 
 ## Gemini, accessibility, and measured performance
 
-The recorded suite has 67 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. A separate running-app smoke request with configured credentials returned model-unavailable and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
+The recorded suite has 73 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. Gemini 3.8 generation verification returned HTTP 503/high demand and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
 
-axe-core checks WCAG 2 A/AA and 2.1 A/AA rules on the admin overview, network, settings, and offer form in jsdom: zero reported violations in those checks. Colour contrast is explicitly excluded because jsdom has no layout renderer. This does not establish WCAG conformance, screen-reader usability, or keyboard behaviour in an actual browser.
+axe-core checks WCAG 2 A/AA and 2.1 A/AA rules on the admin overview, network, settings, offer form, guided rescue, and comparison form in jsdom: zero reported violations in those checks. Colour contrast is explicitly excluded because jsdom has no layout renderer. This does not establish WCAG conformance, screen-reader usability, or keyboard behaviour in an actual browser.
 
 [Recorded CPU benchmarks](verification/benchmark.json) contain local percentiles and workload sizes. They measure neither HTTP/cloud latency nor Gemini response time. Re-run `npm run benchmark` on the evaluation machine; do not interpret CPU results as end-to-end speed guarantees.
 
 The pinned GitHub Actions workflow runs syntax, tests, fixtures, and benchmarks on Windows and Linux. A committed workflow is not evidence that a hosted run has passed; inspect its actual run before claiming CI success.
+
+## Guided rescue and disruption comparison
+
+Domain, HTTP, and DOM checks verify the fresh-seed 80-to-60 comparison, no database/revision changes, preserved confirmed reservations, stale comparisons, manager-only access, CSRF, and role-specific workflow links. Guide and planner controls are included in the scoped axe check. Colour contrast and native browser behaviour remain unverified.
+
+`npm run load-check` runs five concurrent workers through 50 authenticated state reads and 50 read-only comparisons on a local ephemeral server, then verifies unchanged revision, reservations, and plan history. [Recorded results](verification/http-load.json) describe that local single-session exercise, not multi-user cloud performance.
+
+`npm run evaluate:live` explicitly makes up to three synthetic-message provider calls when a key is configured. It exits unsuccessfully if any case falls back or differs from its expected fields. Circuit-paused cases are marked unattempted. Normal CI and startup never run this optional paid-provider evaluation.

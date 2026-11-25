@@ -44,6 +44,12 @@ async function harness(t, options = {}) {
       "utf8",
     ),
   );
+  w.eval(
+    await readFile(
+      new URL("../public/rescue-guide.js", import.meta.url),
+      "utf8",
+    ),
+  );
   w.eval(await readFile(new URL("../public/app.js", import.meta.url), "utf8"));
   t.after(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -137,9 +143,56 @@ test("key admin views and offer form pass DOM-level WCAG checks (contrast exclud
   await audit("network");
   h.click('[data-nav="settings"]');
   await audit("settings");
+  h.click('[data-nav="guide"]');
+  await audit("guided rescue");
+  h.click('[data-nav="plans"]');
+  await audit("planner comparison form");
   h.click('[data-nav="offers"]');
   h.click('[data-action="new"][data-kind="offers"]');
   await audit("offer form");
+});
+
+test("guided rescue links to the real workflow and preview compares without changing availability", async (t) => {
+  const h = await harness(t);
+  await h.signIn("admin");
+  h.click('[data-action="guide"]');
+  assert.equal(h.w.document.querySelectorAll(".rescue-step").length, 5);
+  assert.match(h.q("#page-content").textContent, /seeded fictional records/i);
+  h.click('.rescue-step [data-action="plans"]');
+  h.value("#preview-volunteer", "v2");
+  h.submit("#preview-form");
+  await h.wait(
+    () => h.q("#preview-result").textContent.includes("20 fewer portions"),
+    "disruption preview",
+  );
+  assert.match(
+    h.q("#preview-result").textContent,
+    /No active volunteer has chilled transport/,
+  );
+  assert.match(
+    h.q("#preview-result").textContent,
+    /no records, reservations, availability, or deliveries were changed/,
+  );
+  h.click('[data-action="build"]');
+  await h.wait(
+    () => h.q("#page-content").textContent.includes("80 meals"),
+    "unchanged actual plan",
+  );
+  assert.match(
+    h.q("#preview-result").textContent,
+    /network changed after this comparison/i,
+  );
+});
+
+test("participant guide uses the signed-in role and does not expose coordinator comparisons", async (t) => {
+  const h = await harness(t);
+  await h.signIn("donor");
+  h.click('[data-nav="guide"]');
+  assert.equal(h.w.document.querySelectorAll(".rescue-step").length, 3);
+  assert.ok(!h.w.document.querySelector('[data-nav="plans"]'));
+  h.click('.rescue-step [data-action="new-offer"]');
+  assert.equal(h.q("#editor").open, true);
+  assert.ok(h.q("#intake-message"));
 });
 
 test("new intake clears unsupported old facts and revokes earlier donor confirmation", async (t) => {
@@ -152,7 +205,10 @@ test("new intake clears unsupported old facts and revokes earlier donor confirma
   h.q('[name="donorConfirmed"]').checked = true;
   h.value("#intake-message", "Food: Rice bowls");
   h.click("#extract-offer");
-  await h.wait(() => h.q("#extract-result").textContent.includes("Local contextual draft"), "replacement intake");
+  await h.wait(
+    () => h.q("#extract-result").textContent.includes("Local contextual draft"),
+    "replacement intake",
+  );
   assert.equal(h.q("#field-food").value, "Rice bowls");
   assert.equal(h.q("#field-meals").value, "");
   assert.equal(h.q("#field-allergens").value, "");
@@ -160,8 +216,11 @@ test("new intake clears unsupported old facts and revokes earlier donor confirma
 });
 
 test("an intake response cannot update a replacement editor", async (t) => {
-  let release, started = false;
-  const blocked = new Promise((resolve) => { release = resolve; });
+  let release,
+    started = false;
+  const blocked = new Promise((resolve) => {
+    release = resolve;
+  });
   const h = await harness(t, {
     aiKey: "test-only",
     fetcher: async () => {
@@ -181,7 +240,10 @@ test("an intake response cannot update a replacement editor", async (t) => {
   h.click('[data-action="new"][data-kind="offers"]');
   h.value("#field-meals", "9");
   release();
-  await h.wait(() => oldOutput.getAttribute("aria-busy") === "false", "old request finished");
+  await h.wait(
+    () => oldOutput.getAttribute("aria-busy") === "false",
+    "old request finished",
+  );
   assert.equal(h.q("#field-meals").value, "9");
   assert.equal(h.q("#extract-result").textContent, "");
   assert.deepEqual(h.errors, []);

@@ -30,7 +30,7 @@ const payload = (draft) => ({
       content: { parts: [{ text: JSON.stringify(draft) }] },
     },
   ],
-  modelVersion: "gemini-2.5-flash",
+  modelVersion: "gemini-3.8-flash",
 });
 const response = (data) => new Response(JSON.stringify(data), { status: 200 });
 const message =
@@ -104,12 +104,13 @@ test("Gemini transport requests JSON, separates instructions and authenticates o
     fetcher: async (url, options) => {
       assert.equal(
         url,
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
       );
       assert.ok(!url.includes("test-secret"));
       assert.equal(options.headers["x-goog-api-key"], "test-secret");
       const body = JSON.parse(options.body);
       assert.equal(body.generationConfig.responseMimeType, "application/json");
+      assert.equal(body.generationConfig.thinkingConfig.thinkingLevel, "LOW");
       assert.equal(body.contents[0].role, "user");
       assert.equal(body.contents[0].parts[0].text, message);
       assert.ok(!JSON.stringify(body).includes("test-secret"));
@@ -118,7 +119,7 @@ test("Gemini transport requests JSON, separates instructions and authenticates o
     },
   });
   assert.equal(result.mode, "live");
-  assert.equal(result.actualModel, "gemini-2.5-flash");
+  assert.equal(result.actualModel, "gemini-3.8-flash");
   assert.equal(result.fallback, null);
 });
 test("missing key never calls a provider and clearly labels local processing", async () => {
@@ -226,7 +227,7 @@ test("public AI allowance is bounded and model metadata is not silently rewritte
     fetcher: async () => response(data),
   });
   const first = await service.extract(message);
-  assert.equal(first.configuredModel, "gemini-2.5-flash");
+  assert.equal(first.configuredModel, "gemini-3.8-flash");
   assert.equal(first.actualModel, data.modelVersion);
   assert.equal(
     (await service.extract(message)).fallback.reason,
