@@ -1,8 +1,8 @@
 {
   "runtime": "v22.22.2",
-  "tests": 81,
-  "linePercent": 96.27,
-  "branchPercent": 92.73,
+  "tests": 85,
+  "linePercent": 96.33,
+  "branchPercent": 92.63,
   "functionPercent": 93.04,
   "minimums": {
     "lines": 95,

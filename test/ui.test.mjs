@@ -56,6 +56,12 @@ async function harness(t, options = {}) {
       "utf8",
     ),
   );
+  w.eval(
+    await readFile(
+      new URL("../public/rescue-motion.js", import.meta.url),
+      "utf8",
+    ),
+  );
   w.eval(await readFile(new URL("../public/app.js", import.meta.url), "utf8"));
   t.after(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -239,6 +245,27 @@ test("page navigation moves DOM focus to the new page heading", async (t) => {
   h.click('.rescue-step [data-action="plans"]');
   assert.equal(h.w.document.activeElement, h.q("#page-content h1"));
   assert.match(h.w.document.activeElement.textContent, /surplus to purpose/);
+});
+
+test("refreshing the current page does not replay its entrance animation", async (t) => {
+  const h = await harness(t);
+  await h.signIn("coordinator");
+  let entrances = 0;
+  const page = h.w.RescueMotion.page;
+  h.w.RescueMotion.page = (root) => {
+    entrances++;
+    page(root);
+  };
+  h.click('[data-nav="guide"]');
+  assert.equal(entrances, 1);
+  h.click("#refresh-button");
+  await h.wait(
+    () => h.q("#toast").textContent === "Workspace refreshed.",
+    "workspace refresh",
+  );
+  assert.equal(entrances, 1);
+  h.click('[data-nav="plans"]');
+  assert.equal(entrances, 2);
 });
 
 test("new intake clears unsupported old facts and revokes earlier donor confirmation", async (t) => {

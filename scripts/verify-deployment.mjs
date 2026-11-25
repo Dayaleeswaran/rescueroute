@@ -79,6 +79,8 @@ export async function verifyDeployment(origin, fetcher = fetch) {
   for (const path of [
     "/",
     "/app.js",
+    "/rescue-motion.js",
+    "/motion.css",
     "/rescue-live.js",
     "/rescue-guide.js",
     "/vendor/leaflet/leaflet.js",

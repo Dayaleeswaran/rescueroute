@@ -47,7 +47,7 @@ The suite also covers geographic distances, role-filtered location visibility, e
 
 ## Gemini, accessibility, and measured performance
 
-The recorded suite has 81 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. Gemini 3.8 generation verification returned HTTP 503/high demand and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
+The recorded suite has 85 passing tests, including 24 fixed local intake fixtures and 160 generated planning scenarios. Provider tests use controlled mocks. Gemini 3.8 generation verification returned HTTP 503/high demand and correctly used local fallback; successful live extraction remains unverified. A UI integration test verifies that a rejected key produces visible local fallback, preserves the extracted fields, and leaves donor confirmation unchecked.
 
 axe-core checks selected WCAG 2 A/AA and 2.1 A/AA rules across 50 role/navigation combinations (16 admin, 14 coordinator, 7 donor, 7 recipient, 6 volunteer) and the admin offer form in jsdom: zero reported violations in those checks. Colour contrast is explicitly excluded because jsdom has no layout renderer. This does not establish WCAG conformance, screen-reader usability, or keyboard behaviour in an actual browser.
 
@@ -79,8 +79,12 @@ All navigation pages for the five roles are now covered by the scoped semantic a
 
 ## Enforced quality gates
 
-`npm run lint` applies the pinned ESLint recommended rules plus strict equality and bans on dynamic code execution to authored application/test/script modules. Vendored Leaflet and ignored artefacts are excluded. Only the jsdom integration harness may evaluate the actual UI source for testing.
+`npm run lint` applies the pinned ESLint recommended rules plus strict equality and bans on dynamic code execution to authored application/test/script modules. Vendored Leaflet and ignored artefacts are excluded. Only the jsdom UI/motion test harnesses may evaluate the actual interface source for testing.
 
 `npm run test:coverage` instruments backend modules and the server. Minimums are 95% line, 90% branch, and 90% function coverage; CI runs that same command on Windows and Linux. See `verification/coverage.json` for actual measurements. Coverage is not a judge score.
 
 Regressions cover SSE backpressure and broken sockets, conditional public-asset requests, private `no-store` responses, browser isolation headers, and page-heading DOM focus after navigation. Live updates and GPS now live in `public/rescue-live.js`; existing handoff, map, GPS-consent and stop-in-flight tests exercise that extracted module. Native browser behaviour remains a separate review.
+
+## Optional motion
+
+Three focused motion tests verify device reduced-motion changes, user preference/cancellation, form usability, and unsupported APIs. A DOM workflow test verifies that a refresh does not replay the current view's entrance. These tests use controlled animation handles and do not verify visual playback or native animation timing. See `MOTION.md`.

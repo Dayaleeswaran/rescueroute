@@ -16,6 +16,8 @@ import { previewPlan } from "./lib/plan-preview.mjs";
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
   ["/app.js", ["public/app.js", "text/javascript"]],
+  ["/rescue-motion.js", ["public/rescue-motion.js", "text/javascript"]],
+  ["/motion.css", ["public/motion.css", "text/css"]],
   ["/rescue-live.js", ["public/rescue-live.js", "text/javascript"]],
   ["/rescue-guide.js", ["public/rescue-guide.js", "text/javascript"]],
   ["/styles.css", ["public/styles.css", "text/css"]],

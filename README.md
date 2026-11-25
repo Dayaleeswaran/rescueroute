@@ -235,13 +235,19 @@ For optional live extraction, add `GEMINI_API_KEY` to your ignored `.env`, set `
 
 The adapter uses Google's REST `generateContent`, `responseMimeType: application/json`, and `responseSchema`. Independent validation checks types, allowed fields, and supported source facts. Strict grounding can reject otherwise valid language outside the local vocabulary; the review form remains available. Failures return explicit local fallback, with an 8-second default timeout and 30-second circuit pause. See [AI architecture](docs/AI_ARCHITECTURE.md) and [prompt evaluation](docs/PROMPT_EVALUATION.md). See [the recorded provider status](docs/verification/gemini-status.json).
 
+## A calmer, animated interface
+
+The sign-in page draws a donor-to-community route, then introduces the workspace with staggered reveals. Page changes, buttons, dialogs, and toasts have short motion feedback; refreshes and background updates do not replay entrances. There is no blocking splash screen or fabricated progress.
+
+Use the **Motion** control to reduce decorative movement. Device reduced-motion settings always take priority, and unsupported animation APIs leave the workflow usable. See [motion behaviour and verification limits](docs/MOTION.md).
+
 ## Real map and live tracking
 
 Open **Live network** to explore clickable donors, recipients, and volunteers on a real OpenStreetMap basemap. The details panel shows offers, quantities, needs, contact details, windows, and tracking status. Coordinators can run explicitly labelled demo movement; volunteers can opt in to browser GPS sharing. Demo placements, entered coordinates, shared GPS, accuracy, and stale fixes are distinguished. Network state updates through authenticated server-sent events. See [docs/LIVE_MAP.md](docs/LIVE_MAP.md) for privacy, geographic planning, setup, and device limits, and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for map licensing.
 
 ## Test and check
 
-**Verification recorded during development: 81 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 85 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
 The only package dependencies are development tools for DOM integration and accessibility checks:
 
@@ -274,6 +280,7 @@ The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks r
 | `lib/plan-preview.mjs` | Read-only, revision-bound volunteer disruption comparison |
 | `public/rescue-guide.js` | Role-specific guided workflow and comparison presentation |
 | `public/rescue-live.js` | SSE, voluntary GPS, demo movement and connection lifecycle |
+| `public/rescue-motion.js` | Finite entrances, user motion preferences and cancellation |
 | `lib/planner.mjs`      | Pure allocation function and separate feasibility audit                                      |
 | `lib/geo.mjs`          | Geographic coordinates, illustrative placements, and great-circle distance                   |
 | `lib/live-network.mjs` | Role-filtered map state, live event streams, temporary GPS fixes, and labelled demo tracking |

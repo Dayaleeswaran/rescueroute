@@ -33,6 +33,7 @@ const state = {
   comparison: null,
   comparing: false,
   busy: false,
+  motionView: null,
 };
 let toastTimer;
 const managed = () => ["admin", "coordinator"].includes(state.data?.user.role);
@@ -91,6 +92,8 @@ function showLogin() {
   state.comparing = false;
   $("workspace").hidden = true;
   $("login-screen").hidden = false;
+  state.motionView = null;
+  window.RescueMotion?.login();
 }
 async function action(
   path,
@@ -163,7 +166,9 @@ function renderShell() {
   )
     state.view = "overview";
   $("login-screen").hidden = true;
+  const enteringWorkspace = $("workspace").hidden;
   $("workspace").hidden = false;
+  if (enteringWorkspace) window.RescueMotion?.workspace();
   $("network-name").textContent = d.settings.networkName;
   $("role-caption").textContent = `${nice(u.role)} portal`;
   $("profile-name").textContent = u.name;
@@ -671,6 +676,10 @@ function render() {
     ? pages[state.view]()
     : entities(state.view);
   mountNetwork();
+  if (state.motionView !== state.view) {
+    window.RescueMotion?.page($("page-content"));
+    state.motionView = state.view;
+  }
 }
 function navigate(view) {
   if (

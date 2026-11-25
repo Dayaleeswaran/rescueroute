@@ -14,22 +14,36 @@
     <link rel="stylesheet" href="/platform.css" />
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/network-map.css" />
+    <link rel="stylesheet" href="/motion.css" />
     <script defer src="/vendor/leaflet/leaflet.js"></script>
     <script defer src="/network-map.js"></script>
     <script defer src="/rescue-guide.js"></script>
     <script defer src="/rescue-live.js"></script>
+    <script defer src="/rescue-motion.js"></script>
     <script type="module" src="/app.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to main content</a>
     <section id="login-screen" class="login-screen" aria-label="Sign in">
       <div class="login-story">
-        <a href="/" class="brand"
-          ><img src="/icon.svg" width="44" height="44" alt="" /><span
-            >rescue<span class="brand-light">route</span
-            ><small>GOOD FOOD. BETTER CONNECTIONS.</small></span
-          ></a
-        >
+        <div class="login-brand-row">
+          <a href="/" class="brand"
+            ><img src="/icon.svg" width="44" height="44" alt="" /><span
+              >rescue<span class="brand-light">route</span
+              ><small>GOOD FOOD. BETTER CONNECTIONS.</small></span
+            ></a
+          >
+          <button
+            class="motion-control"
+            type="button"
+            data-motion-toggle
+            aria-label="Reduce animations"
+            aria-pressed="false"
+          >
+            <span class="motion-icon" aria-hidden="true">?</span
+            ><span class="motion-label">Motion: on</span>
+          </button>
+        </div>
         <div class="login-story-copy">
           <span class="hero-label"
             >A LITTLE COORDINATION. A LOT OF POSSIBILITY.</span
@@ -40,9 +54,126 @@
             someone’s next meal.
           </p>
           <div class="login-illustration" aria-hidden="true">
-            <span class="parcel parcel-one">♧</span
-            ><span class="parcel parcel-two">♡</span
-            ><span class="connection-dot"></span>
+            <svg
+              class="entry-network"
+              viewBox="0 0 440 190"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M122 95 C155 95 157 95 189 95"
+                pathLength="240"
+                class="entry-route"
+                stroke="#d6e8ae"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <path
+                d="M253 95 C283 95 285 95 318 95"
+                pathLength="240"
+                class="entry-route entry-route-last"
+                stroke="#d6e8ae"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              />
+              <circle
+                cx="221"
+                cy="95"
+                r="49"
+                stroke="#dce8bd"
+                stroke-opacity=".16"
+                stroke-dasharray="3 6"
+              />
+              <g transform="translate(18 52)">
+                <g class="entry-node">
+                  <rect
+                    width="104"
+                    height="86"
+                    rx="16"
+                    fill="#ffffff"
+                    fill-opacity=".06"
+                    stroke="#dce8bd"
+                    stroke-opacity=".35"
+                  />
+                  <path
+                    d="M37 25 L52 18 L67 25 V45 L52 53 L37 45 Z M37 25 L52 33 L67 25 M52 33 V53"
+                    stroke="#ecf2d5"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                  <text
+                    x="52"
+                    y="70"
+                    text-anchor="middle"
+                    fill="#ecf2d5"
+                    font-family="Arial, sans-serif"
+                    font-size="9"
+                    letter-spacing="1.6"
+                  >
+                    DONOR
+                  </text>
+                </g>
+              </g>
+              <g transform="translate(189 63)">
+                <g class="entry-node">
+                  <circle cx="32" cy="32" r="32" fill="#e5edc9" />
+                  <path
+                    d="M15 23 H36 V41 H15 Z M36 29 H44 L50 36 V41 H36 M21 46 A4 4 0 1 0 21 38 A4 4 0 1 0 21 46 M43 46 A4 4 0 1 0 43 38 A4 4 0 1 0 43 46"
+                    stroke="#214b3d"
+                    stroke-width="1.8"
+                    fill="#e5edc9"
+                    stroke-linejoin="round"
+                  />
+                </g>
+              </g>
+              <text
+                x="221"
+                y="150"
+                text-anchor="middle"
+                fill="#dce8bd"
+                font-family="Arial, sans-serif"
+                font-size="9"
+                letter-spacing="1.4"
+              >
+                VOLUNTEER
+              </text>
+              <g transform="translate(318 52)">
+                <g class="entry-node entry-node-last">
+                  <rect
+                    width="104"
+                    height="86"
+                    rx="16"
+                    fill="#ffffff"
+                    fill-opacity=".06"
+                    stroke="#dce8bd"
+                    stroke-opacity=".35"
+                  />
+                  <path
+                    d="M35 34 L52 20 L69 34 M39 31 V51 H65 V31 M48 51 V39 H56 V51"
+                    stroke="#ecf2d5"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                  <text
+                    x="52"
+                    y="70"
+                    text-anchor="middle"
+                    fill="#ecf2d5"
+                    font-family="Arial, sans-serif"
+                    font-size="9"
+                    letter-spacing="1.2"
+                  >
+                    COMMUNITY
+                  </text>
+                </g>
+              </g>
+              <g class="entry-spark" stroke="#d6e8ae" stroke-linecap="round">
+                <path d="M162 40 V48 M158 44 H166" />
+                <path d="M289 145 V151 M286 148 H292" />
+              </g>
+            </svg>
           </div>
           <div class="login-story-footer">
             <span>Donors</span><span>→</span><span>Volunteers</span
@@ -141,6 +272,16 @@
             Workspace <span>/</span><strong id="breadcrumb">Overview</strong>
           </div>
           <div class="topbar-right">
+            <button
+              class="motion-control"
+              type="button"
+              data-motion-toggle
+              aria-label="Reduce animations"
+              aria-pressed="false"
+            >
+              <span class="motion-icon" aria-hidden="true">?</span
+              ><span class="motion-label">Motion: on</span>
+            </button>
             <span class="demo-pill" id="deployment-badge"
               ><span></span> Persistent local demo</span
             ><button
