@@ -1,4 +1,12 @@
+/**
+ * @fileoverview RescueRoute browser client: state management, view rendering,
+ * modal editors, AI/local intake extraction, and live network SSE updates.
+ */
+
+/** Shorthand DOM element lookup by ID. */
 const $ = (id) => document.getElementById(id);
+
+/** Escapes HTML special characters for safe template interpolation. */
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -732,285 +740,280 @@ function renderIntakeResult(result) {
   $("extract-result").innerHTML =
     `<div class="intake-review"><strong>${source}</strong><p>${esc(result.fallback?.message || `Requested model: ${result.configuredModel}. Reported model: ${result.actualModel || "not supplied by provider"}.`)}</p><p>${result.completeness.known} of ${result.completeness.total} fields supported. Human review is still required.</p>${result.warnings.length ? `<ul>${result.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}${result.questions.length ? `<ul>${result.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}<details><summary>View the source facts</summary><dl class="intake-evidence">${facts || "<p>No supported facts were found.</p>"}</dl></details><p>Confirm the organisation, location, use-by, and handling requirements before saving.</p></div>`;
 }
-function editEntity(kind, id, draft = {}) {
-  const old = id && find(kind, id);
-  const r = old || draft;
-  const openedRevision = state.data.revision;
-  let fields;
-  if (["donors", "recipients", "volunteers"].includes(kind)) {
-    const placement = r.geo ||
-      state.data.mapData?.entities.find((e) => e.id === r.id)?.coordinates || [
-        6.917, 79.877,
-      ];
-    fields =
-      field("name", "Name", r.name, "text", 'required maxlength="120"') +
+/** Builds form fields for donor, recipient, or volunteer profile records. */
+function buildProfileFields(kind, r) {
+  const placement = r.geo ||
+    state.data.mapData?.entities.find((e) => e.id === r.id)?.coordinates || [
+      6.917, 79.877,
+    ];
+  let fields =
+    field("name", "Name", r.name, "text", 'required maxlength="120"') +
+    field(
+      "contact",
+      "Contact email or phone",
+      r.contact,
+      "text",
+      'required maxlength="120"',
+    ) +
+    select(
+      "locationMode",
+      "Map placement",
+      r.geo ? "manual" : "demo",
+      [
+        ["demo", "Illustrative demo placement"],
+        ["manual", "Use the coordinates below"],
+      ],
+      "required",
+    ) +
+    field(
+      "locationLabel",
+      "Address or location label (optional)",
+      r.locationLabel || "",
+      "text",
+      'maxlength="180"',
+    ) +
+    field(
+      "latitude",
+      "Latitude",
+      placement[0],
+      "number",
+      'required min="-85" max="85" step="any"',
+    ) +
+    field(
+      "longitude",
+      "Longitude",
+      placement[1],
+      "number",
+      'required min="-180" max="180" step="any"',
+    );
+  if (kind === "volunteers") {
+    fields +=
       field(
-        "contact",
-        "Contact email or phone",
-        r.contact,
+        "vehicle",
+        "Vehicle",
+        r.vehicle || "Car",
         "text",
         'required maxlength="120"',
       ) +
+      field(
+        "capacity",
+        "Meal capacity per trip",
+        r.capacity || 30,
+        "number",
+        'required min="1" max="500" step="1"',
+      ) +
+      field(
+        "available",
+        "Available from",
+        time(r.available ?? state.data.settings.now),
+        "time",
+        "required",
+      ) +
+      field("until", "Shift ends", time(r.until ?? 1080), "time", "required");
+  }
+  return (
+    `<div class="form-grid">${fields}</div>` +
+    (kind === "volunteers"
+      ? checkbox(
+          "chilled",
+          "This vehicle can meet the donor’s declared chilled handling requirements.",
+          r.chilled,
+        )
+      : "") +
+    checkbox(
+      "active",
+      kind === "volunteers"
+        ? "Available for new assignments"
+        : "Organisation is active",
+      r.active ?? true,
+    )
+  );
+}
+
+/** Builds form fields for food offers and recipient requests. */
+function buildOrderFields(kind, r, old) {
+  const offer = kind === "offers";
+  const parents = state.data[offer ? "donors" : "recipients"].filter(
+    (x) => x.active || x.id === r[offer ? "donorId" : "recipientId"],
+  );
+  const parentId =
+    r[offer ? "donorId" : "recipientId"] ||
+    (managed() ? parents[0]?.id : state.data.user.entityId);
+  const parent = select(
+    offer ? "donorId" : "recipientId",
+    offer ? "Donor organisation" : "Recipient organisation",
+    parentId,
+    parents.map((x) => [x.id, x.name]),
+    `required ${old || !managed() ? "disabled" : ""}`,
+  );
+  let fields =
+    parent +
+    (offer
+      ? field(
+          "food",
+          "Food description",
+          r.food,
+          "text",
+          'required maxlength="120"',
+        )
+      : "") +
+    field(
+      "meals",
+      "Meal portions",
+      r.meals,
+      "number",
+      'required min="1" max="1000" step="1"',
+    ) +
+    field(
+      "deadline",
+      offer ? "Collection complete by" : "Delivery complete by",
+      typeof r.deadline === "string" ? r.deadline : time(r.deadline ?? 1050),
+      "time",
+      `required min="${time(state.data.settings.now)}"`,
+    );
+  if (offer) {
+    fields +=
+      field(
+        "ready",
+        "Ready for collection",
+        time(r.ready ?? state.data.settings.now),
+        "time",
+        "required",
+      ) +
+      field(
+        "deliverBy",
+        "Donor-declared delivery use-by",
+        time(r.deliverBy ?? 1080),
+        "time",
+        "required",
+      ) +
+      field(
+        "maxTransitMinutes",
+        "Maximum transit + handover (minutes)",
+        r.maxTransitMinutes ?? 60,
+        "number",
+        'required min="1" max="240" step="1"',
+      ) +
       select(
-        "locationMode",
-        "Map placement",
-        r.geo ? "manual" : "demo",
+        "handling",
+        "Required transport",
+        r.handling || "",
         [
-          ["demo", "Illustrative demo placement"],
-          ["manual", "Use the coordinates below"],
+          ["", "Confirm with donor"],
+          ["ambient", "Ambient"],
+          ["chilled", "Chilled"],
         ],
         "required",
       ) +
       field(
-        "locationLabel",
-        "Address or location label (optional)",
-        r.locationLabel || "",
+        "allergens",
+        "Declared allergens (comma separated, or “none”)",
+        Array.isArray(r.allergens) ? r.allergens.join(", ") || "none" : "",
         "text",
-        'maxlength="180"',
-      ) +
-      field(
-        "latitude",
-        "Latitude",
-        placement[0],
-        "number",
-        'required min="-85" max="85" step="any"',
-      ) +
-      field(
-        "longitude",
-        "Longitude",
-        placement[1],
-        "number",
-        'required min="-180" max="180" step="any"',
-      );
-    if (kind === "volunteers")
-      fields +=
-        field(
-          "vehicle",
-          "Vehicle",
-          r.vehicle || "Car",
-          "text",
-          'required maxlength="120"',
-        ) +
-        field(
-          "capacity",
-          "Meal capacity per trip",
-          r.capacity || 30,
-          "number",
-          'required min="1" max="500" step="1"',
-        ) +
-        field(
-          "available",
-          "Available from",
-          time(r.available ?? state.data.settings.now),
-          "time",
-          "required",
-        ) +
-        field("until", "Shift ends", time(r.until ?? 1080), "time", "required");
-    fields =
-      `<div class="form-grid">${fields}</div>` +
-      (kind === "volunteers"
-        ? checkbox(
-            "chilled",
-            "This vehicle can meet the donor’s declared chilled handling requirements.",
-            r.chilled,
-          )
-        : "") +
-      checkbox(
-        "active",
-        kind === "volunteers"
-          ? "Available for new assignments"
-          : "Organisation is active",
-        r.active ?? true,
+        'required maxlength="250"',
       );
   } else {
-    const offer = kind === "offers";
-    const parents = state.data[offer ? "donors" : "recipients"].filter(
-      (x) => x.active || x.id === r[offer ? "donorId" : "recipientId"],
-    );
-    const parentId =
-      r[offer ? "donorId" : "recipientId"] ||
-      (managed() ? parents[0]?.id : state.data.user.entityId);
-    const parent = select(
-      offer ? "donorId" : "recipientId",
-      offer ? "Donor organisation" : "Recipient organisation",
-      parentId,
-      parents.map((x) => [x.id, x.name]),
-      `required ${old || !managed() ? "disabled" : ""}`,
-    );
-    fields =
-      parent +
-      (offer
-        ? field(
-            "food",
-            "Food description",
-            r.food,
-            "text",
-            'required maxlength="120"',
-          )
-        : "") +
+    fields +=
       field(
-        "meals",
-        "Meal portions",
-        r.meals,
-        "number",
-        'required min="1" max="1000" step="1"',
+        "excludes",
+        "Excluded allergens (comma separated, or “none”)",
+        r.excludes?.join(", ") || "none",
+        "text",
+        'required maxlength="250"',
       ) +
-      field(
-        "deadline",
-        offer ? "Collection complete by" : "Delivery complete by",
-        typeof r.deadline === "string" ? r.deadline : time(r.deadline ?? 1050),
-        "time",
-        `required min="${time(state.data.settings.now)}"`,
+      select(
+        "priority",
+        "Declared priority",
+        String(r.priority || 2),
+        [
+          ["1", "1 · Standard"],
+          ["2", "2 · Elevated"],
+          ["3", "3 · Urgent"],
+        ],
+        "required",
       );
-    if (offer)
-      fields +=
-        field(
-          "ready",
-          "Ready for collection",
-          time(r.ready ?? state.data.settings.now),
-          "time",
-          "required",
-        ) +
-        field(
-          "deliverBy",
-          "Donor-declared delivery use-by",
-          time(r.deliverBy ?? 1080),
-          "time",
-          "required",
-        ) +
-        field(
-          "maxTransitMinutes",
-          "Maximum transit + handover (minutes)",
-          r.maxTransitMinutes ?? 60,
-          "number",
-          'required min="1" max="240" step="1"',
-        ) +
-        select(
-          "handling",
-          "Required transport",
-          r.handling || "",
-          [
-            ["", "Confirm with donor"],
-            ["ambient", "Ambient"],
-            ["chilled", "Chilled"],
-          ],
-          "required",
-        ) +
-        field(
-          "allergens",
-          "Declared allergens (comma separated, or “none”)",
-          Array.isArray(r.allergens) ? r.allergens.join(", ") || "none" : "",
-          "text",
-          'required maxlength="250"',
-        );
-    else
-      fields +=
-        field(
-          "excludes",
-          "Excluded allergens (comma separated, or “none”)",
-          r.excludes?.join(", ") || "none",
-          "text",
-          'required maxlength="250"',
-        ) +
-        select(
-          "priority",
-          "Declared priority",
-          String(r.priority || 2),
-          [
-            ["1", "1 · Standard"],
-            ["2", "2 · Elevated"],
-            ["3", "3 · Urgent"],
-          ],
-          "required",
-        );
-    fields =
-      `<div class="form-grid">${fields}</div>` +
-      `<label for="field-notes">Coordination notes</label><textarea id="field-notes" name="notes" maxlength="1000" rows="2">${esc(r.notes || "")}</textarea>` +
-      (offer
-        ? checkbox(
-            "donorConfirmed",
-            "The donor has confirmed quantities, ingredients and declared allergens, food suitability, location, use-by, and handling requirements.",
-            r.donorConfirmed,
-          )
-        : "") +
-      (managed()
-        ? checkbox(
-            "approve",
-            "I reviewed these details. Approve this record for planning.",
-            old?.status === "approved",
-          )
-        : '<p class="fine-print">Your submission will enter the coordinator review queue. Editing an approved record requires review again.</p>');
   }
-  const intake =
-    kind === "offers" && !old
-      ? `<details class="intake-details"><summary>✳ Start from a donor message</summary><p>${state.session.intake === "live" ? "Gemini JSON extraction sends this message to Google. Local fallback is available if the request fails. Use fictional data." : "Local contextual mode. Explicit facts and the simulation clock support extraction; conflicting or missing facts require clarification."}</p><label for="intake-message">Donor message</label><textarea id="intake-message" maxlength="3000" rows="4"></textarea><div class="intake-tools"><button class="text-button" id="fill-sample" type="button">Use sample</button><button class="button secondary" type="button" id="extract-offer">Extract details</button></div><div id="extract-result" role="status"></div></details>`
-      : "";
-  openEditor(
-    `${old ? "Edit" : "Add"} ${kind === "offers" ? "food offer" : kind === "requests" ? "recipient request" : kind.slice(0, -1)}`,
-    intake +
-      `<form id="record-form">${fields}${formEnd(["offers", "requests"].includes(kind) ? "Save reviewed details" : "Save profile")}`,
+  return (
+    `<div class="form-grid">${fields}</div>` +
+    `<label for="field-notes">Coordination notes</label><textarea id="field-notes" name="notes" maxlength="1000" rows="2">${esc(r.notes || "")}</textarea>` +
+    (offer
+      ? checkbox(
+          "donorConfirmed",
+          "The donor has confirmed quantities, ingredients and declared allergens, food suitability, location, use-by, and handling requirements.",
+          r.donorConfirmed,
+        )
+      : "") +
+    (managed()
+      ? checkbox(
+          "approve",
+          "I reviewed these details. Approve this record for planning.",
+          old?.status === "approved",
+        )
+      : '<p class="fine-print">Your submission will enter the coordinator review queue. Editing an approved record requires review again.</p>')
   );
-  $("record-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const f = new FormData(event.currentTarget);
-    const input = Object.fromEntries(f);
-    input.revision = openedRevision;
-    if (old) input.id = old.id;
-    if (["donors", "recipients", "volunteers"].includes(kind)) {
-      input.point = old?.point || [3, 3];
-      input.geo =
-        input.locationMode === "manual"
-          ? [Number(input.latitude), Number(input.longitude)]
-          : null;
-      input.active = f.has("active");
+}
+
+/** Converts entity modal form inputs into the API payload format. */
+function serializeEntityForm(kind, formElement, old, openedRevision) {
+  const f = new FormData(formElement);
+  const input = Object.fromEntries(f);
+  input.revision = openedRevision;
+  if (old) input.id = old.id;
+  if (["donors", "recipients", "volunteers"].includes(kind)) {
+    input.point = old?.point || [3, 3];
+    input.geo =
+      input.locationMode === "manual"
+        ? [Number(input.latitude), Number(input.longitude)]
+        : null;
+    input.active = f.has("active");
+  }
+  if (kind === "volunteers") {
+    input.capacity = Number(input.capacity);
+    input.available = minutes(input.available);
+    input.until = minutes(input.until);
+    input.chilled = f.has("chilled");
+  }
+  if (kind === "offers" || kind === "requests") {
+    const parentField = kind === "offers" ? "donorId" : "recipientId";
+    input[parentField] =
+      old?.[parentField] || input[parentField] || state.data.user.entityId;
+    input.meals = Number(input.meals);
+    input.deadline = minutes(input.deadline);
+    input.approve = f.has("approve");
+    const key = kind === "offers" ? "allergens" : "excludes";
+    input[key] = /^none$/i.test(input[key].trim())
+      ? []
+      : input[key]
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+    if (kind === "offers") {
+      input.ready = minutes(input.ready);
+      input.deliverBy = minutes(input.deliverBy);
+      input.maxTransitMinutes = Number(input.maxTransitMinutes);
+      input.donorConfirmed = f.has("donorConfirmed");
+    } else {
+      input.priority = Number(input.priority);
     }
-    if (kind === "volunteers") {
-      input.capacity = Number(input.capacity);
-      input.available = minutes(input.available);
-      input.until = minutes(input.until);
-      input.chilled = f.has("chilled");
-    }
-    if (kind === "offers" || kind === "requests") {
-      input[kind === "offers" ? "donorId" : "recipientId"] =
-        old?.[kind === "offers" ? "donorId" : "recipientId"] ||
-        input[kind === "offers" ? "donorId" : "recipientId"] ||
-        state.data.user.entityId;
-      input.meals = Number(input.meals);
-      input.deadline = minutes(input.deadline);
-      input.approve = f.has("approve");
-      const key = kind === "offers" ? "allergens" : "excludes";
-      input[key] = /^none$/i.test(input[key].trim())
-        ? []
-        : input[key]
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-      if (kind === "offers") {
-        input.ready = minutes(input.ready);
-        input.deliverBy = minutes(input.deliverBy);
-        input.maxTransitMinutes = Number(input.maxTransitMinutes);
-        input.donorConfirmed = f.has("donorConfirmed");
-      } else input.priority = Number(input.priority);
-    }
-    await action(
-      `/api/entities/${kind}`,
-      input,
-      "Record saved. The planning state has been updated.",
-      { close: true },
-    );
-  });
-  if ($("fill-sample"))
+  }
+  return input;
+}
+
+/** Wires optional intake sample-fill and extraction buttons inside the offer modal. */
+function wireIntakeControls() {
+  if ($("fill-sample")) {
     $("fill-sample").addEventListener(
       "click",
       () =>
         ($("intake-message").value =
           "Donor: The Green Table\nFood: Roasted vegetable meal boxes\nWe have 15 meals available. Collect by 17:30.\nHandling: ambient\nAllergens: none"),
     );
-  if ($("extract-offer"))
+  }
+  if ($("extract-offer")) {
     $("extract-offer").addEventListener("click", async () => {
-      const b = $("extract-offer"),
-        output = $("extract-result"),
-        form = $("record-form");
+      const b = $("extract-offer");
+      const output = $("extract-result");
+      const form = $("record-form");
       b.disabled = true;
       output.setAttribute("aria-busy", "true");
       output.innerHTML =
@@ -1025,13 +1028,14 @@ function editEntity(kind, id, draft = {}) {
         for (const [key, value] of Object.entries(result.draft)) {
           if (key === "name") continue;
           const el = $(`field-${key}`);
-          if (el)
+          if (el) {
             el.value =
               value === null
                 ? ""
                 : Array.isArray(value)
                   ? value.join(", ") || "none"
                   : value;
+          }
         }
         renderIntakeResult(result);
       } catch (e) {
@@ -1041,6 +1045,42 @@ function editEntity(kind, id, draft = {}) {
         output.setAttribute("aria-busy", "false");
       }
     });
+  }
+}
+
+/** Opens the create/edit modal for a donor, recipient, volunteer, offer, or request. */
+function editEntity(kind, id, draft = {}) {
+  const old = id && find(kind, id);
+  const r = old || draft;
+  const openedRevision = state.data.revision;
+  const fields = ["donors", "recipients", "volunteers"].includes(kind)
+    ? buildProfileFields(kind, r)
+    : buildOrderFields(kind, r, old);
+  const intake =
+    kind === "offers" && !old
+      ? `<details class="intake-details"><summary>✳ Start from a donor message</summary><p>${state.session.intake === "live" ? "Gemini JSON extraction sends this message to Google. Local fallback is available if the request fails. Use fictional data." : "Local contextual mode. Explicit facts and the simulation clock support extraction; conflicting or missing facts require clarification."}</p><label for="intake-message">Donor message</label><textarea id="intake-message" maxlength="3000" rows="4"></textarea><div class="intake-tools"><button class="text-button" id="fill-sample" type="button">Use sample</button><button class="button secondary" type="button" id="extract-offer">Extract details</button></div><div id="extract-result" role="status"></div></details>`
+      : "";
+  openEditor(
+    `${old ? "Edit" : "Add"} ${kind === "offers" ? "food offer" : kind === "requests" ? "recipient request" : kind.slice(0, -1)}`,
+    intake +
+      `<form id="record-form">${fields}${formEnd(["offers", "requests"].includes(kind) ? "Save reviewed details" : "Save profile")}`,
+  );
+  $("record-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = serializeEntityForm(
+      kind,
+      event.currentTarget,
+      old,
+      openedRevision,
+    );
+    await action(
+      `/api/entities/${kind}`,
+      input,
+      "Record saved. The planning state has been updated.",
+      { close: true },
+    );
+  });
+  wireIntakeControls();
 }
 function editUser(id) {
   const u = id && find("users", id),
