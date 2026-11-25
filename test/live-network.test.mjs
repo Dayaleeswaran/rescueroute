@@ -221,7 +221,7 @@ test("authenticated event streams carry invalidation events, not private locatio
     abort.abort();
   }
 });
-test("live network enforces connection limits, GPS rate limits, and demo/stop guards", (t) => {
+test("live network enforces connection limits, GPS rate limits, and demo/stop guards", async (t) => {
   const db = new Database({ initial: structuredClone(seed) });
   let now = 10000;
   const live = new LiveNetwork(db, () => now);
@@ -264,4 +264,16 @@ test("live network enforces connection limits, GPS rate limits, and demo/stop gu
   now += 2500;
   live.stop(user(db, "u8"), "v1");
   assert.equal(live.fix("v1"), null);
+
+  // Demo tracking along an active assigned plan trip.
+  const id = await db.transaction((s) => ops.buildDraft(s, "u1"));
+  await db.transaction((s) =>
+    ops.confirmDraft(s, "u1", { id, revision: s.revision }),
+  );
+  live.demo(user(db, "u1"), { id: "v1", progress: 0.5 });
+  const assignedEntity = view(live, db, user(db, "u1")).entities.find(
+    (e) => e.id === "v1",
+  );
+  assert.equal(assignedEntity.fix.mode, "demo");
+  live.stop(user(db, "u1"), "v1");
 });

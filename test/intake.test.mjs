@@ -7,6 +7,7 @@ import {
   createIntakeService,
 } from "../lib/intake.mjs";
 import { localReasoning } from "../lib/local-intake.mjs";
+import { requestGemini } from "../lib/gemini.mjs";
 import { evaluateIntake } from "../scripts/evaluate-intake.mjs";
 
 test("deterministic semantic fixture suite passes without network calls", () => {
@@ -260,4 +261,71 @@ test("hourly AI budget resets after an hour and live mode adds grounded name/foo
   now += 3600001;
   const afterReset = await service.extract(prose);
   assert.equal(afterReset.mode, "live");
+});
+test("requestGemini handles model variants, thinking configs, block reasons, and oversized outputs", async () => {
+  await assert.rejects(
+    requestGemini("10 meals", { key: "k", model: "bad-model" }),
+    (err) => err.code === "model_configuration",
+  );
+  for (const [model, expectedThinking] of [
+    ["gemini-2.5-flash", { thinkingBudget: 0 }],
+    ["gemini-2.0-flash", undefined],
+  ]) {
+    let seenConfig;
+    const out = await requestGemini("10 meals", {
+      key: "k",
+      model,
+      context: { now: 540 },
+      fetcher: async (_url, init) => {
+        seenConfig = JSON.parse(init.body).generationConfig.thinkingConfig;
+        return new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: { parts: [{ text: JSON.stringify(empty) }] },
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      },
+    });
+    assert.deepEqual(seenConfig, expectedThinking);
+    assert.equal(out.actualModel, null);
+  }
+  await assert.rejects(
+    requestGemini("10 meals", {
+      key: "k",
+      model: "gemini-3.8-flash",
+      fetcher: async () =>
+        new Response(
+          JSON.stringify({
+            promptFeedback: { blockReason: "SAFETY" },
+            candidates: [{ finishReason: "STOP", content: { parts: [] } }],
+          }),
+          { status: 200 },
+        ),
+    }),
+    (err) => err.code === "blocked_or_incomplete",
+  );
+  await assert.rejects(
+    requestGemini("10 meals", {
+      key: "k",
+      model: "gemini-3.8-flash",
+      fetcher: async () =>
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: { parts: [{ text: "x".repeat(12001) }] },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    }),
+    (err) => err.code === "invalid_response",
+  );
 });

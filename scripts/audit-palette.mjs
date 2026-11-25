@@ -30,7 +30,7 @@ const luminance = (hex) => {
     .map((n) => (n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4));
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 };
-const contrastCheck = (name, foreground, background) => {
+const contrastCheck = (name, foreground, background, minRatio = 4.5) => {
   const [a, b] = [luminance(foreground), luminance(background)].sort(
     (x, y) => y - x,
   );
@@ -40,7 +40,8 @@ const contrastCheck = (name, foreground, background) => {
     foreground,
     background,
     ratio: +ratio.toFixed(2),
-    meetsNormalTextAA: ratio >= 4.5,
+    minRatio,
+    meetsAA: ratio >= minRatio,
   };
 };
 
@@ -72,6 +73,18 @@ const checks = [
     property(motionCss, ".motion-control", "color"),
     property(motionCss, ".motion-control", "background"),
   ),
+  contrastCheck(
+    "intro-card-club-icon",
+    property(motionCss, ".intro-card-club", "color"),
+    property(motionCss, ".intro-card-club", "background"),
+    3.0,
+  ),
+  contrastCheck(
+    "intro-card-back-icon",
+    property(motionCss, ".intro-card-back", "color"),
+    property(motionCss, ".intro-card-back", "background"),
+    3.0,
+  ),
 ];
 
 console.log(
@@ -79,10 +92,10 @@ console.log(
     {
       checks,
       scope:
-        "Ten opaque CSS foreground/background pairs across map markers, core theme tokens, and intro/motion controls using WCAG relative luminance.",
+        "Twelve opaque CSS foreground/background pairs across map markers, core theme tokens, and intro/motion controls using WCAG relative luminance (4.5:1 text, 3.0:1 non-text graphics).",
     },
     null,
     2,
   ),
 );
-if (checks.some((row) => !row.meetsNormalTextAA)) process.exitCode = 1;
+if (checks.some((row) => !row.meetsAA)) process.exitCode = 1;

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://rescueroute-demo.onrender.com"><strong>Open public demo</strong></a> ?
+  <a href="https://rescueroute-demo.onrender.com"><strong>Open public demo</strong></a> &middot;
   <a href="#why-this-problem-matters"><strong>The problem</strong></a> ·
   <a href="#start-the-demo"><strong>Get started</strong></a> ·
   <a href="#working-panels">Explore the features</a> ·

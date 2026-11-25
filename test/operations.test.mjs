@@ -342,4 +342,17 @@ test("simulation time cannot move backwards or advance through active trips", as
     }),
     errorStatus(409),
   );
+  for (const [kind, getId] of [
+    ["offers", (s) => s.offers[0].id],
+    ["requests", (s) => s.requests[0].id],
+    ["volunteers", (s) => s.volunteers[0].id],
+    ["recipients", (s) => s.recipients[0].id],
+  ]) {
+    await assert.rejects(
+      db.transaction((s) =>
+        ops.deleteEntity(s, "u1", kind, { id: getId(s), revision: s.revision }),
+      ),
+      errorStatus(409),
+    );
+  }
 });
