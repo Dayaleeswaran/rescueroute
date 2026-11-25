@@ -267,3 +267,59 @@ test("persistent database survives restart, serialises writes and rolls back fai
   assert.equal(restored.read().settings.city, "Harbor City");
   assert.equal(restored.read().revision, revision);
 });
+test("session, settings, withdraw endpoints and login rate limiting work end to end", async (t) => {
+  const server = createApp({ aiKey: "" });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise((resolve) => server.close(resolve));
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const headers = await login(base, "admin");
+  const sessionRes = await fetch(base + "/api/session", { headers });
+  assert.equal(sessionRes.status, 200);
+  const state = await (await fetch(base + "/api/state", { headers })).json();
+  const settingsRes = await fetch(base + "/api/settings", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      networkName: state.settings.networkName,
+      city: state.settings.city,
+      now: state.settings.now,
+      revision: state.revision,
+    }),
+  });
+  assert.equal(settingsRes.status, 200);
+  const updated = await (await fetch(base + "/api/state", { headers })).json();
+  const withdrawRes = await fetch(base + "/api/withdraw/offers", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      id: updated.offers[0].id,
+      revision: updated.revision,
+    }),
+  });
+  assert.equal(withdrawRes.status, 200);
+
+  // Trigger 15 failed login attempts to verify 429 rate limiting.
+  for (let i = 0; i < 15; i++) {
+    const fail = await fetch(base + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "admin@demo.rescueroute.test",
+        password: "wrong-password",
+      }),
+    });
+    assert.equal(fail.status, 401);
+  }
+  const throttled = await fetch(base + "/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "admin@demo.rescueroute.test",
+      password: "wrong-password",
+    }),
+  });
+  assert.equal(throttled.status, 429);
+});
