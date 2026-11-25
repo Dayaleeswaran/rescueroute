@@ -32,6 +32,8 @@ async function harness(t, options = {}) {
     return response;
   };
   w.scrollTo = () => {};
+  // Dedicated motion tests cover the intro; workflow checks start at sign-in.
+  w.sessionStorage.setItem("rescueroute.intro.seen", "true");
   w.HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };
