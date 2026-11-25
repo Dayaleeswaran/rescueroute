@@ -14,13 +14,18 @@
     "evaluate:live": "node --env-file-if-exists=.env scripts/evaluate-live.mjs",
     "verify:deployment": "node scripts/verify-deployment.mjs",
     "check:contrast": "node scripts/audit-palette.mjs",
-    "load:public-demo": "node scripts/load-public-demo.mjs"
+    "load:public-demo": "node scripts/load-public-demo.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=lib/*.mjs --test-coverage-include=server.mjs --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=90"
   },
   "engines": {
     "node": ">=22.13"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "axe-core": "4.10.3",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
     "jsdom": "^26.1.0"
   }
 }

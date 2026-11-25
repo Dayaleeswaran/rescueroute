@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { Database, seedDatabase } from "./lib/database.mjs";
 import { Sessions, publicUser, verifyPassword } from "./lib/auth.mjs";
 import * as ops from "./lib/operations.mjs";
@@ -15,6 +16,7 @@ import { previewPlan } from "./lib/plan-preview.mjs";
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
   ["/app.js", ["public/app.js", "text/javascript"]],
+  ["/rescue-live.js", ["public/rescue-live.js", "text/javascript"]],
   ["/rescue-guide.js", ["public/rescue-guide.js", "text/javascript"]],
   ["/styles.css", ["public/styles.css", "text/css"]],
   ["/platform.css", ["public/platform.css", "text/css"]],
@@ -100,7 +102,13 @@ export function createApp({
   const server = createServer(async (req, res) => {
     if (config.publicDemo)
       res.setHeader("Strict-Transport-Security", "max-age=31536000");
-    res.setHeader("Permissions-Policy", "geolocation=(self)");
+    res.setHeader(
+      "Permissions-Policy",
+      "geolocation=(self), camera=(), microphone=(), payment=(), usb=()",
+    );
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Cache-Control", "no-store");
@@ -144,6 +152,21 @@ export function createApp({
       if (req.method === "GET" && assets.has(path)) {
         const [file, type] = assets.get(path);
         const data = await readFile(new URL(file, import.meta.url));
+        const etag = `"${createHash("sha256").update(data).digest("base64url")}"`;
+        res.setHeader("ETag", etag);
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+        if (
+          req.headers["if-none-match"]
+            ?.split(",")
+            .some(
+              (value) =>
+                value.trim().replace(/^W\//, "") === etag ||
+                value.trim() === "*",
+            )
+        ) {
+          res.writeHead(304);
+          return res.end();
+        }
         res.writeHead(200, { "Content-Type": `${type}; charset=utf-8` });
         return res.end(data);
       }

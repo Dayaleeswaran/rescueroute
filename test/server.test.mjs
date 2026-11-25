@@ -38,6 +38,37 @@ async function login(base, account) {
   };
 }
 
+test("static cache validators save downloads while authenticated responses stay uncached", async (t) => {
+  const { base } = await application(t);
+  const asset = await fetch(base + "/app.js");
+  assert.equal(asset.status, 200);
+  const etag = asset.headers.get("etag");
+  assert.match(etag, /^"[A-Za-z0-9_-]+"$/);
+  assert.match(asset.headers.get("cache-control"), /must-revalidate/);
+  assert.equal(
+    asset.headers.get("cross-origin-resource-policy"),
+    "same-origin",
+  );
+  assert.equal(asset.headers.get("x-frame-options"), "DENY");
+  assert.match(asset.headers.get("permissions-policy"), /camera=\(\)/);
+  const cached = await fetch(base + "/app.js", {
+    headers: { "If-None-Match": `W/${etag}` },
+  });
+  assert.equal(cached.status, 304);
+  assert.equal(await cached.text(), "");
+  const stale = await fetch(base + "/app.js", {
+    headers: { "If-None-Match": '"old-version"' },
+  });
+  assert.equal(stale.status, 200);
+  const headers = await login(base, "admin");
+  const state = await fetch(base + "/api/state", {
+    headers: { ...headers, "If-None-Match": etag },
+  });
+  assert.equal(state.status, 200);
+  assert.equal(state.headers.get("cache-control"), "no-store");
+  assert.equal(state.headers.get("etag"), null);
+});
+
 test("comparison API enforces coordinator access and CSRF while preserving revision and records", async (t) => {
   const { base } = await application(t);
   const headers = await login(base, "admin");

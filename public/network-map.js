@@ -18,7 +18,6 @@
     layer,
     accuracyLayer,
     payload,
-    selected,
     api,
     selectedKey = null,
     search = "",
@@ -49,7 +48,6 @@
   }
   function choose(entity, pan = true) {
     selectedKey = key(entity);
-    selected = entity;
     details();
     if (map && pan) map.panTo(coordinate(entity));
     list();
@@ -70,7 +68,6 @@
     if (!target) return;
     const e =
       selectedKey && payload.entities.find((e) => key(e) === selectedKey);
-    selected = e;
     if (!e) {
       target.innerHTML =
         '<p class="network-empty">Select a marker or an entity to see contact details, available food, needs, or tracking status.</p>';
@@ -257,7 +254,6 @@
       destroy();
       payload = null;
       selectedKey = null;
-      selected = null;
       rememberedView = null;
       search = "";
       shown = new Set(["donor", "recipient", "volunteer"]);

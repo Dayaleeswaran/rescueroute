@@ -241,13 +241,14 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
-**Verification recorded during development: 76 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 81 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
 The only package dependencies are development tools for DOM integration and accessibility checks:
 
 ```sh
 npm ci
-npm test
+npm run test:coverage
+npm run lint
 npm run check
 npm run evaluate
 npm run benchmark
@@ -272,6 +273,7 @@ The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks r
 | `lib/operations.mjs`   | Roles, ownership, CRUD, approvals, reservations, lifecycle, audit, filtered views            |
 | `lib/plan-preview.mjs` | Read-only, revision-bound volunteer disruption comparison |
 | `public/rescue-guide.js` | Role-specific guided workflow and comparison presentation |
+| `public/rescue-live.js` | SSE, voluntary GPS, demo movement and connection lifecycle |
 | `lib/planner.mjs`      | Pure allocation function and separate feasibility audit                                      |
 | `lib/geo.mjs`          | Geographic coordinates, illustrative placements, and great-circle distance                   |
 | `lib/live-network.mjs` | Role-filtered map state, live event streams, temporary GPS fixes, and labelled demo tracking |
@@ -287,11 +289,14 @@ The fixed local intake evaluation passes **24/24 fixtures**. Scoped axe checks r
 
 ## Security, efficiency, and accessibility
 
+The [six-criterion quality targets](docs/EVALUATION.md) set a goal of 98/100 per category without claiming awarded scores. See [security boundaries](docs/SECURITY.md) and [measured coverage](docs/verification/coverage.json).
+
 - HttpOnly, SameSite=Strict cookies; eight-hour in-memory sessions. Sessions reset on server restart. Password changes, account deactivation, and demo reset revoke relevant access; queued writes recheck account and demo generation.
 - Scrypt password hashing with independent random salts; account fields are whitelisted.
 - CSRF tokens for authenticated mutations, same-origin checks, local-host restrictions, strict CSP, escaped UI text, and static-file allowlists.
 - Login throttling; intake cooldown, one provider request at a time, 3,000-character input limit, and an 8-second default provider timeout. JSON bodies are limited to 48 KB.
 - Maximum 30 records per operational category, 60 accounts, 200 plan versions, 1,500 audit entries, and 250 stored notifications. Older notifications/audit entries are bounded; exported state includes the latest 200 audit entries and 50 relevant notifications.
+- Slow event consumers are disconnected when their output buffer fills; authorised clients reconnect for the current snapshot. Public static assets support conditional ETag requests; operational data remains `no-store`.
 - No runtime package installation or bundling requirement. Leaflet 1.9.4 is vendored locally; visible basemap tiles load from OpenStreetMap. Opt-in GPS keeps only the latest fix in memory, with no tracking history. Server-sent events replace background polling. The bounded planner is intended for small coordinator workloads rather than global route optimisation.
 - CSV exports quote cells and neutralise leading spreadsheet formula characters. JSON exports omit password hashes and API credentials, but include participant contacts and should be handled appropriately.
 - Labelled form controls, semantic headings, native dialogs, status text in addition to colour, live feedback, visible focus, a skip link, responsive navigation, and reduced-motion support. The trip list is the textual map equivalent.

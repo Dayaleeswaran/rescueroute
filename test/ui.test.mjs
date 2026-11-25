@@ -50,6 +50,12 @@ async function harness(t, options = {}) {
       "utf8",
     ),
   );
+  w.eval(
+    await readFile(
+      new URL("../public/rescue-live.js", import.meta.url),
+      "utf8",
+    ),
+  );
   w.eval(await readFile(new URL("../public/app.js", import.meta.url), "utf8"));
   t.after(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -222,6 +228,17 @@ test("participant guide uses the signed-in role and does not expose coordinator 
   h.click('.rescue-step [data-action="new-offer"]');
   assert.equal(h.q("#editor").open, true);
   assert.ok(h.q("#intake-message"));
+});
+
+test("page navigation moves DOM focus to the new page heading", async (t) => {
+  const h = await harness(t);
+  await h.signIn("coordinator");
+  h.click('[data-nav="guide"]');
+  assert.equal(h.w.document.activeElement, h.q("#page-content h1"));
+  assert.match(h.w.document.activeElement.textContent, /step by step/);
+  h.click('.rescue-step [data-action="plans"]');
+  assert.equal(h.w.document.activeElement, h.q("#page-content h1"));
+  assert.match(h.w.document.activeElement.textContent, /surplus to purpose/);
 });
 
 test("new intake clears unsupported old facts and revokes earlier donor confirmation", async (t) => {

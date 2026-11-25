@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 
 const files = [
   "server.mjs",
+  "eslint.config.mjs",
   ...["lib", "public", "scripts", "test"].flatMap((dir) =>
     readdirSync(dir)
       .filter((f) => /\.(mjs|js)$/.test(f))

@@ -21,8 +21,9 @@ jobs:
           node-version: 22.22.2
           cache: npm
       - run: npm ci --ignore-scripts
+      - run: npm run lint
       - run: npm run check
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run evaluate
       - run: npm run benchmark
       - run: npm run load-check

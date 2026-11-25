@@ -110,9 +110,8 @@ test("public hosting isolates visitors, cookies, resets, reservations and tracki
   const a = await login(),
     b = await login();
   assert.notEqual(a.Cookie, b.Cookie);
-  let aState = await (await request("/api/state", a)).json();
   const draft = await (await request("/api/plans/build", a, {})).json();
-  aState = await (await request("/api/state", a)).json();
+  const aState = await (await request("/api/state", a)).json();
   assert.equal(
     (
       await request("/api/plans/confirm", a, {

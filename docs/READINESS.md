@@ -11,7 +11,7 @@ This document maps the four general expectations supplied by the owner to workin
 
 ## Verified in this checkout
 
-- 76 automated tests pass.
+- 81 automated tests pass.
 - Scoped axe checks pass across 50 role/navigation combinations and an offer form; colour contrast is excluded from jsdom checks.
 - Targeted map-marker text colour ratios pass 4.5:1, using source CSS values only.
 - Local HTTP exercise: 100 requests with five concurrent workers and unchanged operational state.
@@ -28,3 +28,7 @@ This document maps the four general expectations supplied by the owner to workin
 - **Challenge eligibility:** these four expectations are general. If the event restricts submissions to specified verticals, confirm food rescue is allowed before using a submission attempt.
 
 These gaps remain visible rather than being converted into a fabricated score or a claim of full readiness.
+
+## Six-criterion improvement pass
+
+The six requested categories each have a 98/100 target in `EVALUATION.md`; no attained judge scores are claimed. The project now enforces lint and backend coverage gates, separates live/GPS lifecycle code, bounds slow event-stream clients, validates static caches while preserving private no-store responses, and moves DOM focus to the new page heading on navigation. The security boundary review is in `SECURITY.md`.

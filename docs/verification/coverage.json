@@ -1,0 +1,13 @@
+{
+  "runtime": "v22.22.2",
+  "tests": 81,
+  "linePercent": 96.27,
+  "branchPercent": 92.73,
+  "functionPercent": 93.04,
+  "minimums": {
+    "lines": 95,
+    "branches": 90,
+    "functions": 90
+  },
+  "scope": "Node built-in instrumented coverage for lib/*.mjs and server.mjs. Frontend behaviour is separately exercised through jsdom. Coverage percentages are not competition scores."
+}

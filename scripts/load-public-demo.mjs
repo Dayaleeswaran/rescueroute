@@ -93,7 +93,12 @@ try {
         confirm: "RESET DEMO",
         password: DEMO_PASSWORD,
       });
-      if (result.status !== 200) throw Error("Reset rejected.");
+      if (result.status !== 200) {
+        console.error(
+          "A test workspace reset was rejected; its records remain temporary.",
+        );
+        process.exitCode = 1;
+      }
     } catch {
       console.error(
         "A test workspace could not be reset; it remains temporary and expires with the demo's idle policy.",
