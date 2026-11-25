@@ -11,7 +11,13 @@
     "read-only disruption preview",
     "reservation confirmation",
     "visitor isolation",
-    "workspace cleanup"
+    "workspace cleanup",
+    "extracted live module served",
+    "frame/resource/opener isolation headers",
+    "restricted browser capability headers",
+    "ETag conditional request returns 304"
   ],
-  "scope": "Owner-authorised disposable public demo; two synthetic workspaces. No GPS device, visual browser, screen reader, or production load verification."
+  "scope": "Owner-authorised disposable public demo; two synthetic workspaces. No GPS device, visual browser, screen reader, or production load verification.",
+  "staticCacheControl": "public, max-age=0, must-revalidate",
+  "conditionalAssetStatus": 304
 }

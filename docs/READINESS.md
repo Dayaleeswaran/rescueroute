@@ -32,3 +32,5 @@ These gaps remain visible rather than being converted into a fabricated score or
 ## Six-criterion improvement pass
 
 The six requested categories each have a 98/100 target in `EVALUATION.md`; no attained judge scores are claimed. The project now enforces lint and backend coverage gates, separates live/GPS lifecycle code, bounds slow event-stream clients, validates static caches while preserving private no-store responses, and moves DOM focus to the new page heading on navigation. The security boundary review is in `SECURITY.md`.
+
+The updated Render build was reverified after the owner redeployed it: the extracted live module loads, isolation/capability headers are present, conditional static requests return 304, and the complete public reservation/isolation verifier passes.
