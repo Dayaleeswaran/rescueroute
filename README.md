@@ -87,7 +87,13 @@ npm start
 
 Open **http://localhost:3000**. No dependency installation is required to run the application: the server uses Node built-ins and the interface uses native browser APIs. On Windows, use `npm.cmd start` if PowerShell blocks `npm.ps1`.
 
-The application is deliberately local-only. It binds to `127.0.0.1`, rejects non-local hostnames, and creates an ignored `.data/rescueroute.json` file. Run **one server process per data directory**. The server does not dispatch real deliveries or send external messages.
+Local mode binds to `127.0.0.1`, rejects non-local hostnames, and creates an ignored `.data/rescueroute.json` file. Run **one server process per data directory**. The server does not dispatch real deliveries or send external messages. For a public URL, use the isolated cloud-demo mode below.
+
+### Deploy a public cloud demo
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Dayaleeswaran/rescueroute)
+
+The included `render.yaml` configures a free Node web service, HTTPS-origin checks, secure cookies, and a health endpoint. **Each browser receives an isolated temporary workspace**, so public demo credentials do not expose another visitor's records or GPS fixes. Public mode uses the no-key parser and resets on restart or workspace expiry. Your Render account must authorise the actual deployment; no public URL is claimed until verified live. Follow [the deployment guide](docs/DEPLOYMENT.md).
 
 ### Demo accounts
 
@@ -109,7 +115,7 @@ RescueDemo!2026
 | Volunteer     | `volunteer@demo.rescueroute.test`   | Maya Chen's profile, availability, assigned trips          |
 | Volunteer     | `alex@demo.rescueroute.test`        | Alex Morgan's profile, availability, assigned trips        |
 
-These credentials are intentionally public for local evaluation. Do not expose the demo to the internet or reuse its passwords. Accounts can be created, disabled, and given replacement passwords from the admin panel. A password reset revokes that account's existing sessions. Administrators cannot disable their own account.
+These credentials are intentionally public for evaluation. Public hosting must use the isolated cloud-demo mode; do not expose the shared local workspace or reuse these passwords. Accounts can be created, disabled, and given replacement passwords from the admin panel. A password reset revokes that account's existing sessions. Administrators cannot disable their own account.
 
 ## Working panels
 
@@ -209,7 +215,7 @@ Open **Live network** to explore clickable donors, recipients, and volunteers on
 
 ## Test and check
 
-**Verification recorded during development: 45 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
+**Verification recorded during development: 48 passing automated tests**, including checks over **160 generated planning scenarios**. This is a local verification result, not a hosted CI-status claim. Re-run the commands below for the current checkout.
 
 The only package dependencies are development tools for DOM integration tests:
 

@@ -154,6 +154,8 @@ function renderShell() {
   $("network-name").textContent = d.settings.networkName;
   $("role-caption").textContent = `${nice(u.role)} portal`;
   $("profile-name").textContent = u.name;
+  if (state.session.deployment?.isolated)
+    $("deployment-badge").textContent = "Private cloud demo workspace";
   $("profile-initials").textContent = u.name
     .split(/\s+/)
     .slice(0, 2)
@@ -1532,4 +1534,14 @@ async function start() {
       $("login-error").textContent = `Unable to connect: ${e.message}`;
   }
 }
+fetch("/api/config")
+  .then((r) => r.json())
+  .then((config) => {
+    if (config.deployment?.isolated) {
+      $("deployment-note").hidden = false;
+      $("deployment-note").textContent =
+        "Public evaluation demo: your workspace is isolated to this browser. Data is temporary and resets after inactivity or a server restart. Use fictional information.";
+    }
+  })
+  .catch(() => {});
 start();

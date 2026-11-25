@@ -8,6 +8,8 @@ import * as ops from "./lib/operations.mjs";
 import { extractOffer } from "./lib/intake.mjs";
 import { InputError } from "./lib/validation.mjs";
 import { LiveNetwork } from "./lib/live-network.mjs";
+import { deploymentConfig, allowedHost } from "./lib/deployment.mjs";
+import { DemoWorkspaces } from "./lib/demo-workspaces.mjs";
 
 const assets = new Map([
   ["/", ["public/index.html", "text/html"]],
@@ -66,13 +68,25 @@ export function createApp({
   aiModel = process.env.OPENAI_MODEL,
   fetcher = fetch,
   database = new Database(),
+  publicDemo = false,
+  publicOrigin = "",
 } = {}) {
+  const config = deploymentConfig({ publicDemo, publicOrigin });
+  const sharedDatabase = database;
   const sessions = new Sessions();
-  const live = new LiveNetwork(database);
+  const sharedLive = new LiveNetwork(sharedDatabase);
+  const workspaces = publicDemo ? new DemoWorkspaces() : null;
+  const sharedIntake = { busy: false, last: 0 };
+  const deployment = {
+    mode: publicDemo ? "public-demo" : "local",
+    isolated: publicDemo,
+    temporary: publicDemo,
+  };
   const loginAttempts = new Map();
-  let aiBusy = false,
-    lastIntake = 0;
   const server = createServer(async (req, res) => {
+    if (config.publicDemo)
+      res.setHeader("Strict-Transport-Security", "max-age=31536000");
+    res.setHeader("Permissions-Policy", "geolocation=(self)");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Cache-Control", "no-store");
@@ -87,15 +101,17 @@ export function createApp({
       res.end(JSON.stringify(data));
     };
     try {
-      if (
-        !/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/.test(
-          req.headers.host || "",
-        )
-      )
-        return json(403, {
-          error: "Only local hostnames are accepted by this demo.",
-        });
       const path = new URL(req.url, "http://localhost").pathname;
+      if (req.method === "GET" && path === "/health")
+        return json(200, {
+          status: "ok",
+          service: "RescueRoute",
+          mode: deployment.mode,
+        });
+      if (!allowedHost(req.headers.host, config))
+        return json(403, {
+          error: "This hostname is not configured for RescueRoute.",
+        });
       const changing = ["POST", "PATCH", "DELETE"].includes(req.method);
       if (
         changing &&
@@ -106,7 +122,8 @@ export function createApp({
       if (
         changing &&
         ((req.headers.origin &&
-          req.headers.origin !== `http://${req.headers.host}`) ||
+          req.headers.origin !==
+            (config.origin || `http://${req.headers.host}`)) ||
           req.headers["sec-fetch-site"] === "cross-site")
       )
         return json(403, { error: "Cross-origin requests are not allowed." });
@@ -116,9 +133,32 @@ export function createApp({
         res.writeHead(200, { "Content-Type": `${type}; charset=utf-8` });
         return res.end(data);
       }
+      if (req.method === "GET" && path === "/api/config")
+        return json(200, { deployment });
+      let workspace = workspaces?.get(req.headers.cookie, false);
+      if (
+        publicDemo &&
+        !workspace &&
+        !(req.method === "POST" && path === "/api/login")
+      )
+        return json(401, {
+          error:
+            "Your temporary demo workspace expired. Sign in to start a fresh one.",
+        });
+      const database =
+          workspace?.database ||
+          (publicDemo ? workspaces.template : sharedDatabase),
+        live = workspace?.live || sharedLive;
+      const intake = workspace?.intake || sharedIntake;
       if (req.method === "POST" && path === "/api/login") {
         const data = await body(req);
         const address = req.socket.remoteAddress;
+        if (loginAttempts.size >= 1024) {
+          for (const [key, value] of loginAttempts)
+            if (Date.now() > value.until) loginAttempts.delete(key);
+          if (loginAttempts.size >= 1024)
+            loginAttempts.delete(loginAttempts.keys().next().value);
+        }
         const attempts = loginAttempts.get(address) || {
           count: 0,
           until: Date.now() + 600000,
@@ -145,19 +185,25 @@ export function createApp({
         if (!user || !valid)
           return json(401, { error: "Email or password is incorrect." });
         loginAttempts.delete(address);
+        if (publicDemo && !workspace) workspace = workspaces.get("", true);
         const s = sessions.create(
           user.id,
           user.authVersion || 0,
-          db.instanceId,
+          workspace?.database.read().instanceId || db.instanceId,
         );
-        res.setHeader(
-          "Set-Cookie",
-          `rr_session=${s.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`,
-        );
+        res.setHeader("Set-Cookie", [
+          ...(workspace
+            ? [
+                `rr_workspace=${workspace.id}; HttpOnly; SameSite=Strict; Path=/; Secure`,
+              ]
+            : []),
+          `rr_session=${s.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${config.secureCookies ? "; Secure" : ""}`,
+        ]);
         return json(200, {
           user: publicUser(user),
           csrf: s.csrf,
-          intake: aiKey ? "live" : "local",
+          intake: !publicDemo && aiKey ? "live" : "local",
+          deployment,
         });
       }
       const session = sessions.get(req.headers.cookie);
@@ -167,7 +213,10 @@ export function createApp({
         (user.authVersion || 0) !== session.authVersion ||
         database.read().instanceId !== session.instanceId
       ) {
-        sessions.delete(session.token);
+        // A cookie from a different isolated workspace must not revoke that
+        // workspace's otherwise valid session.
+        if (database.read().instanceId === session.instanceId)
+          sessions.delete(session.token);
         return json(401, {
           error: "Your account or demo changed. Sign in again.",
         });
@@ -189,7 +238,8 @@ export function createApp({
         return json(200, {
           user: publicUser(user),
           csrf: session.csrf,
-          intake: aiKey ? "live" : "local",
+          intake: !publicDemo && aiKey ? "live" : "local",
+          deployment,
         });
       if (req.method === "GET" && path === "/api/events")
         return live.connect(req, res, () => {
@@ -206,6 +256,7 @@ export function createApp({
       if (req.method === "GET" && path === "/api/state") {
         const db = database.read(),
           view = ops.stateView(db, user);
+        view.deployment = deployment;
         view.mapData = live.view(db, user, view);
         return json(200, view);
       }
@@ -215,6 +266,7 @@ export function createApp({
         return json(200, {
           product: "RescueRoute",
           demo: true,
+          deployment,
           exportedAt: new Date().toISOString(),
           assumptions:
             "Geographic straight-line planning distances; 24 km/h; 4 minutes per stop; illustrative demo placements unless entered manually; donor-declared handling; simulated handoffs.",
@@ -252,7 +304,7 @@ export function createApp({
         sessions.delete(session.token);
         res.setHeader(
           "Set-Cookie",
-          "rr_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+          `rr_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${config.secureCookies ? "; Secure" : ""}`,
         );
         return json(200, { ok: true });
       }
@@ -261,23 +313,23 @@ export function createApp({
           return json(403, {
             error: "Only donors and coordinators can extract offers.",
           });
-        if (aiBusy || Date.now() - lastIntake < 1200)
+        if (intake.busy || Date.now() - intake.last < 1200)
           return json(429, {
             error: "Please wait a moment before analysing another message.",
           });
-        aiBusy = true;
-        lastIntake = Date.now();
+        intake.busy = true;
+        intake.last = Date.now();
         try {
           return json(
             200,
             await extractOffer(data.message, {
-              key: aiKey,
+              key: publicDemo ? "" : aiKey,
               model: aiModel,
               fetcher,
             }),
           );
         } finally {
-          aiBusy = false;
+          intake.busy = false;
         }
       }
       if (path === "/api/reset") {
@@ -292,12 +344,13 @@ export function createApp({
           return json(400, {
             error: "Enter RESET DEMO and your current administrator password.",
           });
+        const oldInstanceId = database.read().instanceId;
         await mutate((db) => {
           const fresh = seedDatabase();
           for (const key of Object.keys(db)) delete db[key];
           Object.assign(db, fresh);
         });
-        sessions.clear();
+        sessions.removeInstance(oldInstanceId);
         live.fixes.clear();
         live.broadcast("network", {});
         return json(200, { ok: true });
@@ -357,20 +410,30 @@ export function createApp({
     }
   });
   server.requestTimeout = 15000;
-  server.on("close", () => live.close());
+  server.on("close", () => {
+    sharedLive.close();
+    workspaces?.close();
+  });
   server.headersTimeout = 10000;
   server.maxHeadersCount = 50;
   return server;
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const publicDemo = process.env.PUBLIC_DEMO === "true";
+  const publicOrigin =
+    process.env.PUBLIC_ORIGIN || process.env.RENDER_EXTERNAL_URL || "";
+  deploymentConfig({ publicDemo, publicOrigin });
   const database = new Database({
-    directory: resolve(process.env.DATA_DIR || ".data"),
+    directory: publicDemo ? null : resolve(process.env.DATA_DIR || ".data"),
   });
   await database.initialise();
   const port = Number(process.env.PORT || 3000);
-  createApp({ database }).listen(port, "127.0.0.1", () =>
-    console.log(
-      `RescueRoute is running at http://localhost:${port}\nDemo sign-in: admin@demo.rescueroute.test · See README for demo password.`,
-    ),
+  createApp({ database, publicDemo, publicOrigin }).listen(
+    port,
+    publicDemo ? "0.0.0.0" : "127.0.0.1",
+    () =>
+      console.log(
+        `RescueRoute is running at ${publicDemo ? publicOrigin : `http://localhost:${port}`}\nMode: ${publicDemo ? "isolated public demonstration" : "local persistent workspace"}\nDemo sign-in: admin@demo.rescueroute.test · See README for demo password.`,
+      ),
   );
 }
