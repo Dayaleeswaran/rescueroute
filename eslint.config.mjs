@@ -16,6 +16,7 @@ export default [
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      globals: globals.node,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -23,13 +24,17 @@ export default [
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
+      "no-var": "error",
+      "prefer-const": "error",
+      "no-duplicate-imports": "error",
+      "object-shorthand": ["error", "always"],
+      "no-useless-return": "error",
       "no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", caughtErrors: "none" },
       ],
     },
   },
-  { files: ["**/*.mjs"], languageOptions: { globals: globals.node } },
   { files: ["public/*.js"], languageOptions: { globals: globals.browser } },
   // UI integration deliberately evaluates the actual interface in jsdom.
   {

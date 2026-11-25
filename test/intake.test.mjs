@@ -238,3 +238,26 @@ test("invalid application input remains a validation error, not a fabricated fal
   await assert.rejects(extractOffer("", { key: "" }));
   await assert.rejects(extractOffer("x".repeat(3001), { key: "" }));
 });
+test("hourly AI budget resets after an hour and live mode adds grounded name/food nodes", async () => {
+  let now = 0;
+  const prose = "Green Table can donate Rice bowls for 15 meals by 17:30 chilled.";
+  const liveDraft = {
+    ...parseLocal(prose),
+    name: "Green Table",
+    food: "Rice bowls",
+  };
+  const service = createIntakeService({
+    key: "private",
+    now: () => now,
+    maxRequestsPerHour: 1,
+    fetcher: async () => response(payload(liveDraft)),
+  });
+  const first = await service.extract(prose);
+  assert.equal(first.mode, "live");
+  assert.ok(first.graph.nodes.some((n) => n.id === "name" && n.value === "Green Table"));
+  assert.ok(first.graph.nodes.some((n) => n.id === "food" && n.value === "Rice bowls"));
+  assert.equal((await service.extract(prose)).fallback.reason, "public_budget");
+  now += 3600001;
+  const afterReset = await service.extract(prose);
+  assert.equal(afterReset.mode, "live");
+});

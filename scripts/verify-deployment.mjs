@@ -12,7 +12,7 @@ export async function createDemoClient(origin, fetcher = fetch) {
       signal: AbortSignal.timeout(12000),
     });
   const jar = new Map();
-  let csrf;
+  const state = { csrf: null };
   const call = async (path, payload, originOverride) => {
     const response = await request(path, {
       ...(payload === undefined
@@ -22,7 +22,7 @@ export async function createDemoClient(origin, fetcher = fetch) {
         Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; "),
         "Content-Type": "application/json",
         Origin: originOverride || target.origin,
-        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...(state.csrf ? { "X-CSRF-Token": state.csrf } : {}),
       },
     });
     for (const cookie of response.headers.getSetCookie()) {
@@ -45,7 +45,7 @@ export async function createDemoClient(origin, fetcher = fetch) {
     password: DEMO_PASSWORD,
   });
   assert.equal(login.status, 200, "Public demo sign-in failed.");
-  csrf = login.data.csrf;
+  state.csrf = login.data.csrf;
   assert.equal(login.data.deployment.isolated, true);
   return call;
 }
