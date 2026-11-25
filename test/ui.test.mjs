@@ -64,6 +64,12 @@ async function harness(t, options = {}) {
       "utf8",
     ),
   );
+  w.eval(
+    await readFile(new URL("../public/app-views.js", import.meta.url), "utf8"),
+  );
+  w.eval(
+    await readFile(new URL("../public/app-forms.js", import.meta.url), "utf8"),
+  );
   w.eval(await readFile(new URL("../public/app.js", import.meta.url), "utf8"));
   t.after(async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
