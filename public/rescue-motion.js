@@ -3,6 +3,9 @@
   const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   const active = new Set();
   const pageAnimations = new Set();
+  const intro = document.getElementById("brand-intro");
+  let introActive = false,
+    introTimer;
   let userReduced = false,
     loginSeen = false,
     workspaceSeen = false;
@@ -12,6 +15,53 @@
     /* Storage is optional. */
   }
   const reduced = () => userReduced || !!media?.matches;
+  function rememberIntro() {
+    try {
+      sessionStorage.setItem("rescueroute.intro.seen", "true");
+    } catch {
+      /* Optional per-tab preference. */
+    }
+  }
+  function finishIntro({ restore = true } = {}) {
+    if (!introActive) return;
+    introActive = false;
+    clearTimeout(introTimer);
+    if (intro.open) intro.close();
+    rememberIntro();
+    if (!restore) return;
+    const workspaceVisible = !document.getElementById("workspace").hidden;
+    if (workspaceVisible) {
+      workspace();
+      page(document.getElementById("page-content"));
+    } else login();
+    const focus = workspaceVisible
+      ? document.querySelector("#page-content h1")
+      : document.getElementById("login-email");
+    if (focus) {
+      if (focus.tagName === "H1") focus.tabIndex = -1;
+      focus.focus({ preventScroll: true });
+    }
+  }
+  function startIntro() {
+    if (!intro) return;
+    try {
+      if (sessionStorage.getItem("rescueroute.intro.seen") === "true") return;
+    } catch {
+      /* Continue without storage. */
+    }
+    if (reduced() || typeof intro.showModal !== "function") {
+      rememberIntro();
+      return;
+    }
+    introActive = true;
+    // CSS normally finishes first. This deadline also releases a modal if CSS fails.
+    introTimer = setTimeout(finishIntro, 2000);
+    try {
+      intro.showModal();
+    } catch {
+      finishIntro();
+    }
+  }
   function cancel() {
     for (const animation of active) animation.cancel();
     active.clear();
@@ -20,7 +70,10 @@
   function sync() {
     const off = reduced();
     document.documentElement.dataset.motion = off ? "off" : "on";
-    if (off) cancel();
+    if (off) {
+      cancel();
+      finishIntro();
+    }
     for (const button of document.querySelectorAll("[data-motion-toggle]")) {
       button.setAttribute("aria-pressed", String(off));
       button.disabled = !!media?.matches;
@@ -72,6 +125,7 @@
     });
   }
   function login() {
+    if (introActive) return;
     if (loginSeen) return;
     loginSeen = true;
     document.getElementById("login-screen").classList.add("entry-play");
@@ -82,11 +136,13 @@
     );
   }
   function workspace() {
+    if (introActive) return;
     if (workspaceSeen) return;
     workspaceSeen = true;
     reveal(document.querySelectorAll(".sidebar, .topbar"), "side");
   }
   function page(root) {
+    if (introActive) return;
     for (const animation of pageAnimations) animation.cancel();
     pageAnimations.clear();
     if (!root) return;
@@ -113,7 +169,19 @@
   document.addEventListener("pointerdown", cancel, { passive: true });
   document.addEventListener("keydown", cancel);
   window.addEventListener("pagehide", cancel);
+  window.addEventListener("pagehide", () => finishIntro({ restore: false }));
+  intro?.addEventListener("animationend", (event) => {
+    if (event.target === intro && event.animationName === "intro-finish")
+      finishIntro();
+  });
+  intro?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    finishIntro();
+  });
+  intro?.addEventListener("close", finishIntro);
+  document.getElementById("skip-intro")?.addEventListener("click", finishIntro);
   media?.addEventListener?.("change", sync);
   window.RescueMotion = { login, workspace, page, sync };
   sync();
+  startIntro();
 })();

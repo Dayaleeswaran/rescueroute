@@ -23,6 +23,51 @@
     <script type="module" src="/app.js"></script>
   </head>
   <body>
+    <dialog id="brand-intro" aria-labelledby="intro-title">
+      <button id="skip-intro" class="intro-skip" type="button" autofocus>
+        Skip intro <span aria-hidden="true">&rarr;</span>
+      </button>
+      <div class="intro-stage">
+        <div class="intro-deck" aria-hidden="true">
+          <div class="intro-card intro-card-back">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M32 14 L48 32 L32 50 L16 32 Z"
+                stroke="currentColor"
+                stroke-width="3.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="intro-card intro-card-club">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M32 13 C26.5 13 22.5 17 22.5 22 C22.5 24.4 23.4 26.5 24.9 28.1 C23.4 27.6 21.8 27.3 20.1 27.5 C15.2 28 11.7 32.3 12.2 37.2 C12.7 42.1 17 45.6 21.9 45.1 C25.2 44.7 27.9 42.7 29.4 39.9 C29 44.4 27.8 48.2 25.5 51 H38.5 C36.2 48.2 35 44.4 34.6 39.9 C36.1 42.7 38.8 44.7 42.1 45.1 C47 45.6 51.3 42.1 51.8 37.2 C52.3 32.3 48.8 28 43.9 27.5 C42.2 27.3 40.6 27.6 39.1 28.1 C40.6 26.5 41.5 24.4 41.5 22 C41.5 17 37.5 13 32 13 Z"
+                stroke="currentColor"
+                stroke-width="3.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="intro-card intro-card-heart">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M32 50 C32 50 13 38.4 13 24.5 C13 18.2 17.8 14 23.4 14 C27.2 14 30.3 16.1 32 19 C33.7 16.1 36.8 14 40.6 14 C46.2 14 51 18.2 51 24.5 C51 38.4 32 50 32 50 Z"
+                stroke="currentColor"
+                stroke-width="3.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="intro-copy">
+          <h2 id="intro-title">rescue<span>route</span></h2>
+          <p>Small routes. Meaningful change.</p>
+        </div>
+      </div>
+    </dialog>
     <a class="skip-link" href="#main">Skip to main content</a>
     <section id="login-screen" class="login-screen" aria-label="Sign in">
       <div class="login-story">
