@@ -20,8 +20,8 @@ window.createAppForms = function createAppForms({
   const select = (name, label, value, options, extra = "") =>
     `<div><label for="field-${name}">${label}</label><select id="field-${name}" name="${name}" ${extra}>${options.map(([v, text]) => `<option value="${esc(v)}" ${value === v ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></div>`;
 
-  const checkbox = (name, label, checked = false) =>
-    `<label class="checkbox-label"><input type="checkbox" name="${name}" ${checked ? "checked" : ""}><span>${label}</span></label>`;
+  const checkbox = (name, label, checked = false, extra = "") =>
+    `<label class="checkbox-label"><input type="checkbox" name="${name}" ${checked ? "checked" : ""} ${extra}><span>${label}</span></label>`;
 
   function openEditor(title, content) {
     $("editor-title").textContent = title;
@@ -244,12 +244,13 @@ window.createAppForms = function createAppForms({
             "donorConfirmed",
             "The donor has confirmed quantities, ingredients and declared allergens, food suitability, location, use-by, and handling requirements.",
             r.donorConfirmed,
+            "required",
           )
         : "") +
       (managed()
         ? checkbox(
             "approve",
-            "I reviewed these details. Approve this record for planning.",
+            "Optional: I reviewed these details. Approve this record for planning. Leave unchecked to save for coordinator review.",
             old?.status === "approved",
           )
         : '<p class="fine-print">Your submission will enter the coordinator review queue. Editing an approved record requires review again.</p>')
@@ -325,7 +326,12 @@ window.createAppForms = function createAppForms({
           });
           if (!b.isConnected || !$("editor").open) return;
           const confirmation = form?.querySelector('[name="donorConfirmed"]');
-          if (confirmation) confirmation.checked = false;
+          if (confirmation) {
+            confirmation.checked = false;
+            confirmation.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          const approval = form?.querySelector('[name="approve"]');
+          if (approval) approval.checked = false;
           for (const [key, value] of Object.entries(result.draft)) {
             if (key === "name") continue;
             const el = $(`field-${key}`);
@@ -366,8 +372,23 @@ window.createAppForms = function createAppForms({
       intake +
         `<form id="record-form">${fields}${formEnd(["offers", "requests"].includes(kind) ? "Save reviewed details" : "Save profile")}`,
     );
+    const confirmation = $("record-form").querySelector('[name="donorConfirmed"]');
+    const saveButton = $("record-form").querySelector('[type="submit"]');
+    const updateConfirmation = () => {
+      saveButton.disabled = Boolean(confirmation && !confirmation.checked);
+    };
+    if (confirmation) {
+      confirmation.addEventListener("change", updateConfirmation);
+      updateConfirmation();
+    }
     $("record-form").addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (confirmation && !confirmation.checked) {
+        $("form-error").textContent =
+          "Confirm the donor declarations before saving this food offer.";
+        confirmation.reportValidity();
+        return;
+      }
       const input = serializeEntityForm(
         kind,
         event.currentTarget,

@@ -247,6 +247,28 @@ test("ownership, managerial permissions and linked history are enforced", async 
     0,
   );
 });
+test("food offers require donor confirmation for creation and editing", async () => {
+  const db = fixture();
+  const before = db.read();
+  for (const user of ["u1", "u2", "u3"]) {
+    for (const id of [undefined, "o1"]) {
+      await assert.rejects(
+        db.transaction((s) =>
+          ops.saveEntity(s, user, "offers", {
+            ...s.offers[0],
+            id,
+            revision: s.revision,
+            donorConfirmed: false,
+            approve: false,
+          }),
+        ),
+        /Confirm the donor declarations before saving/,
+      );
+    }
+  }
+  assert.deepEqual(db.read(), before);
+});
+
 test("donor submissions require review and cannot self-approve", async () => {
   const db = fixture();
   const id = await db.transaction((s) =>
