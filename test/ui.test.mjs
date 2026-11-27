@@ -398,6 +398,30 @@ test("GPS starts only on consent action and stopping waits for an in-flight fix 
   assert.deepEqual(h.errors, []);
 });
 
+test("food-offer form blocks unchecked donor declarations and extraction clears confirmation", async (t) => {
+  const h = await harness(t);
+  await h.signIn("admin");
+  h.click('[data-nav="offers"]');
+  h.click('[data-action="new"][data-kind="offers"]');
+  const confirmation = h.q('[name="donorConfirmed"]');
+  const save = h.q('#record-form [type="submit"]');
+  assert.equal(confirmation.required, true);
+  assert.equal(save.disabled, true);
+  h.submit("#record-form");
+  assert.match(h.q("#form-error").textContent, /Confirm the donor declarations/);
+  assert.equal(h.q("#editor").open, true);
+  confirmation.click();
+  assert.equal(save.disabled, false);
+  h.q('[name="approve"]').checked = true;
+  h.click("#fill-sample");
+  h.click("#extract-offer");
+  await h.wait(() => h.q("#extract-result").textContent.includes("fields supported"), "extract draft");
+  assert.equal(confirmation.checked, false);
+  assert.equal(h.q('[name="approve"]').checked, false);
+  assert.equal(save.disabled, true);
+  assert.deepEqual(h.errors, []);
+});
+
 test("UI supports every administrator panel, profile creation, offer submission and approval", async (t) => {
   const h = await harness(t);
   await h.signIn("admin");
